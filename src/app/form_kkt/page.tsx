@@ -7,93 +7,10 @@ import { Search } from "@/components/search";
 import { ThemeSwitch } from "@/components/theme-switch";
 import { DynamicForm } from "../../components/dynamic-form";
 import type { FieldConfig, UISchema } from "@/lib/definitions";
+import formConfig from "./form-config.json";
 
-const fields: FieldConfig[] = [
-  {
-    name: "numer_karty",
-    label: "Numer karty",
-    type: "text", // Matches FieldType
-    required: true,
-  },
-  {
-    name: "imie_nazwisko",
-    label: "Imię i nazwisko",
-    type: "text", // Matches FieldType
-    required: true,
-  },
-  {
-    name: "wiek",
-    label: "Wiek",
-    type: "number", // Matches FieldType
-  },
-  {
-    name: "wypadanie_nasilenie",
-    label: "Nasilenie",
-    type: "text", // Matches FieldType
-  },
-];
-
-const userFormUISchema: UISchema = {
-  numer_karty: {
-    uiType: "text",
-    placeholder: "Numer karty",
-    helperText: "Numer karty - opis.",
-  },
-  g_dane_klienta: {
-    uiType: "namedGroup",
-    name: "g_dane_klienta",
-    label: "Dane Klienta",
-    fields: ["g_imie_wiek"],
-    layout: "vertical",
-  },
-  g_imie_wiek: {
-    uiType: "group",
-    layout: "horizontal",
-    fields: ["imie_nazwisko", "wiek"],
-    className: "items-start",
-  },
-  imie_nazwisko: {
-    uiType: "text",
-    placeholder: "Imię i nazwisko",
-  },
-  wiek: {
-    uiType: "number",
-    label: "Wiek",
-    placeholder: "Wiek",
-  },
-  g_wypadanie: {
-    uiType: "namedGroup",
-    name: "g_wypadanie",
-    label: "Wypadanie włosów",
-    fields: ["wypadanie_nasilenie"],
-    layout: "vertical",
-  },
-  wypadanie_nasilenie: {
-    uiType: "radio",
-    options: [
-      {
-        label: "w normie",
-        value: "w normie",
-      },
-      {
-        label: "nasilone",
-        value: "nasilone",
-      },
-      {
-        label: "nadmierne",
-        value: "nadmierne",
-      },
-      {
-        label: "okresowe",
-        value: "okresowe",
-      },
-      {
-        label: "brak",
-        value: "brak",
-      },
-    ],
-  },
-};
+const fields = formConfig.fields as FieldConfig[];
+const userFormUISchema = formConfig.uiSchema as UISchema;
 
 export default function Page() {
   return (
@@ -110,10 +27,10 @@ export default function Page() {
         <div className="mb-2 flex items-center justify-between space-y-2 flex-wrap">
           <div>
             <h2 className="text-2xl font-bold tracking-tight">
-              Karta klienta trychologicznego
+              {formConfig.name}
             </h2>
             <p className="text-muted-foreground">
-              Karta klienta trychologicznego - opis
+              {formConfig.description}
             </p>
           </div>
         </div>

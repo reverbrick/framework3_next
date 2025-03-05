@@ -119,7 +119,7 @@ export function DynamicForm({
           );
         case "radio":
           return (
-            <RadioGroup {...commonProps}>
+            <RadioGroup {...commonProps} className={uiConfig.layout === "horizontal" ? "flex flex-row space-x-4" : "space-y-2"}>
               {uiConfig.options?.map((option) => (
                 <div key={option.value} className="flex items-center space-x-2">
                   <RadioGroupItem
@@ -135,7 +135,7 @@ export function DynamicForm({
           );
         case "checkbox":
           return (
-            <div className="space-y-2">
+            <div className={uiConfig.layout === "horizontal" ? "flex flex-row space-x-4" : "space-y-2"}>
               {uiConfig.options?.map((option) => (
                 <div key={option.value} className="flex items-center space-x-2">
                   <Checkbox
@@ -184,30 +184,33 @@ export function DynamicForm({
     [fields, uiSchema, state, renderField],
   );
 
-  const renderUISchemaItem = useCallback(
-    (item: UISchemaItem, key: string): React.ReactElement | null => {
-      switch (item.uiType) {
-        case "namedGroup":
-          return renderNamedGroup(item);
-        case "group":
-          return renderGroup(item, key);
-        case "spacer":
-          return (
-            <div
-              key={key}
-              style={{ height: item.height }}
-              className={item.className}
-            />
-          );
-        default:
-          return renderFieldWrapper(key);
-      }
-    },
-    [renderFieldWrapper],
-  );
+  type RenderUISchemaItemFn = (
+    item: UISchemaItem,
+    key: string,
+    renderedFields: Set<string>
+  ) => React.ReactElement | null;
+
+  const renderUISchemaItem: RenderUISchemaItemFn = useCallback((item, key, renderedFields) => {
+    switch (item.uiType) {
+      case "namedGroup":
+        return renderNamedGroup(item, renderedFields);
+      case "group":
+        return renderGroup(item, key, renderedFields);
+      case "spacer":
+        return (
+          <div
+            key={key}
+            style={{ height: item.height }}
+            className={item.className}
+          />
+        );
+      default:
+        return renderFieldWrapper(key);
+    }
+  }, [renderFieldWrapper]);
 
   const renderGroup = useCallback(
-    (group: UISchemaGroupItem, groupName: string) => {
+    (group: UISchemaGroupItem, groupName: string, renderedFields: Set<string>) => {
       const layoutClass =
         group.layout === "horizontal" ? "flex flex-row space-x-4" : "space-y-4";
       return (
@@ -217,7 +220,9 @@ export function DynamicForm({
         >
           {group.fields.map((fieldName) => {
             const item = uiSchema[fieldName];
-            return item ? renderUISchemaItem(item, fieldName) : null;
+            if (!item || renderedFields.has(fieldName)) return null;
+            renderedFields.add(fieldName);
+            return renderUISchemaItem(item, fieldName, renderedFields);
           })}
         </div>
       );
@@ -226,7 +231,7 @@ export function DynamicForm({
   );
 
   const renderNamedGroup = useCallback(
-    (group: UISchemaNamedGroupItem) => {
+    (group: UISchemaNamedGroupItem, renderedFields: Set<string>) => {
       const layoutClass =
         group.layout === "horizontal" ? "flex flex-row space-x-4" : "space-y-4";
       return (
@@ -237,7 +242,9 @@ export function DynamicForm({
           <CardContent className={layoutClass}>
             {group.fields.map((fieldName) => {
               const item = uiSchema[fieldName];
-              return item ? renderUISchemaItem(item, fieldName) : null;
+              if (!item || renderedFields.has(fieldName)) return null;
+              renderedFields.add(fieldName);
+              return renderUISchemaItem(item, fieldName, renderedFields);
             })}
           </CardContent>
         </Card>
@@ -252,12 +259,11 @@ export function DynamicForm({
     return Object.entries(uiSchema)
       .map(([key, item]) => {
         if (item.uiType === "group" || item.uiType === "namedGroup") {
-          item.fields.forEach((field) => renderedFields.add(field));
-          return renderUISchemaItem(item, key);
+          return renderUISchemaItem(item, key, renderedFields);
         }
         if (!renderedFields.has(key)) {
           renderedFields.add(key);
-          return renderUISchemaItem(item, key);
+          return renderUISchemaItem(item, key, renderedFields);
         }
         return null;
       })

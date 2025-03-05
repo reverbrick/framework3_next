@@ -1,0 +1,159 @@
+export * from "./table/generate-columns";
+export * from "./table/generate-table-config";
+export * from "./table/supabase-to-table-config";
+
+import { ColumnDef, FilterFn } from "@tanstack/react-table";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { MoreHorizontalIcon, ArrowUpDown } from "lucide-react";
+
+type ColumnConfig<T> = {
+  key: string;
+  label: string;
+  type?: 'string' | 'number' | 'date' | 'boolean';
+  sortable?: boolean;
+  hidden?: boolean;
+  width?: number;
+  minWidth?: number;
+  maxWidth?: number;
+  render?: (value: any, row: T) => React.ReactNode;
+  filterFn?: FilterFn<T>;
+};
+
+export function generateColumns<T extends Record<string, any>>(
+  columnConfigs: ColumnConfig<T>[],
+  options: {
+    selectable?: boolean;
+    actions?: {
+      label: string;
+      onClick: (row: T) => void;
+    }[];
+  } = {}
+): ColumnDef<T>[] {
+  const columns: ColumnDef<T>[] = [];
+
+  // Add selection column if selectable is true
+  if (options.selectable) {
+    columns.push({
+      id: "select",
+      header: ({ table }) => (
+        <Checkbox
+          checked={table.getIsAllPageRowsSelected()}
+          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+          aria-label="Select all"
+        />
+      ),
+      cell: ({ row }) => (
+        <Checkbox
+          checked={row.getIsSelected()}
+          onCheckedChange={(value) => row.toggleSelected(!!value)}
+          aria-label="Select row"
+        />
+      ),
+      enableSorting: false,
+      enableHiding: false,
+      size: 40,
+    });
+  }
+
+  // Add data columns
+  columnConfigs.forEach((config) => {
+    if (config.hidden) return;
+
+    const column: ColumnDef<T> = {
+      accessorKey: config.key,
+      header: ({ column }) => {
+        if (config.sortable === false) {
+          return config.label;
+        }
+        return (
+          <div className="flex w-full items-center">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="-ml-3 h-8 w-full justify-start"
+              onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+            >
+              {config.label}
+              <ArrowUpDown className="ml-1 h-4 w-4" />
+            </Button>
+          </div>
+        );
+      },
+      cell: ({ row }) => {
+        const value = row.getValue(config.key);
+        
+        // Use custom render function if provided
+        if (config.render) {
+          return config.render(value, row.original);
+        }
+
+        // Default rendering based on type
+        switch (config.type) {
+          case 'date':
+            if (!value) return "N/A";
+            try {
+              return new Date(value as string).toLocaleDateString();
+            } catch {
+              return "Invalid Date";
+            }
+          case 'boolean':
+            return value ? "Yes" : "No";
+          default:
+            return value || "N/A";
+        }
+      },
+      size: config.width,
+      minSize: config.minWidth,
+      maxSize: config.maxWidth,
+    };
+
+    // Add filter function if provided
+    if (config.filterFn) {
+      column.filterFn = config.filterFn;
+    }
+
+    columns.push(column);
+  });
+
+  // Add actions column if actions are provided
+  if (options.actions?.length) {
+    columns.push({
+      id: "actions",
+      cell: ({ row }) => {
+        return (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="h-8 w-8 p-0">
+                <span className="sr-only">Open menu</span>
+                <MoreHorizontalIcon className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+              {options.actions.map((action, index) => (
+                <DropdownMenuItem
+                  key={index}
+                  onClick={() => action.onClick(row.original)}
+                >
+                  {action.label}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        );
+      },
+      size: 50,
+    });
+  }
+
+  return columns;
+} 

@@ -12,17 +12,11 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 
-interface Props {
-  children: React.ReactNode
-  className?: string
-  contentClassName?: string
+interface LongTextProps extends React.HTMLAttributes<HTMLDivElement> {
+  children: React.ReactNode;
 }
 
-export default function LongText({
-  children,
-  className = '',
-  contentClassName = '',
-}: Props) {
+export default function LongText({ children, className, ...props }: LongTextProps) {
   const ref = useRef<HTMLDivElement>(null)
   const [isOverflown, setIsOverflown] = useState(false)
 
@@ -37,7 +31,12 @@ export default function LongText({
 
   if (!isOverflown)
     return (
-      <div ref={ref} className={cn('truncate', className)}>
+      <div
+        ref={ref}
+        className={cn('truncate', className)}
+        title={typeof children === "string" ? children : undefined}
+        {...props}
+      >
         {children}
       </div>
     )
@@ -48,12 +47,17 @@ export default function LongText({
         <TooltipProvider delayDuration={0}>
           <Tooltip>
             <TooltipTrigger asChild>
-              <div ref={ref} className={cn('truncate', className)}>
+              <div
+                ref={ref}
+                className={cn('truncate', className)}
+                title={typeof children === "string" ? children : undefined}
+                {...props}
+              >
                 {children}
               </div>
             </TooltipTrigger>
             <TooltipContent>
-              <p className={contentClassName}>{children}</p>
+              <p>{children}</p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
@@ -61,11 +65,16 @@ export default function LongText({
       <div className='sm:hidden'>
         <Popover>
           <PopoverTrigger asChild>
-            <div ref={ref} className={cn('truncate', className)}>
+            <div
+              ref={ref}
+              className={cn('truncate', className)}
+              title={typeof children === "string" ? children : undefined}
+              {...props}
+            >
               {children}
             </div>
           </PopoverTrigger>
-          <PopoverContent className={cn('w-fit', contentClassName)}>
+          <PopoverContent className={cn('w-fit')}>
             <p>{children}</p>
           </PopoverContent>
         </Popover>

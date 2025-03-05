@@ -37,6 +37,7 @@ export interface UISchemaFieldItem extends UISchemaItemBase {
   helperText?: string;
   options?: { label: string; value: string }[]; // For select, radio, checkbox
   rows?: number; // For textarea
+  layout?: "horizontal" | "vertical"; // For radio and checkbox layout
 }
 
 export interface UISchemaSpacerItem extends UISchemaItemBase {

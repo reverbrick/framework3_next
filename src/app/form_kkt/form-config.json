@@ -1,0 +1,90 @@
+{
+  "name": "Karta klienta trychologicznego",
+  "description": "Karta klienta trychologicznego - opis",
+  "fields": [
+    {
+      "name": "numer_karty",
+      "label": "Numer karty",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "imie_nazwisko",
+      "label": "Imię i nazwisko",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "wiek",
+      "label": "Wiek",
+      "type": "number"
+    },
+    {
+      "name": "wypadanie_nasilenie",
+      "label": "Nasilenie",
+      "type": "text"
+    }
+  ],
+  "uiSchema": {
+    "numer_karty": {
+      "uiType": "text",
+      "placeholder": "Numer karty",
+      "helperText": "Numer karty - opis."
+    },
+    "g_dane_klienta": {
+      "uiType": "namedGroup",
+      "name": "g_dane_klienta",
+      "label": "Dane Klienta",
+      "fields": ["g_imie_wiek"],
+      "layout": "vertical"
+    },
+    "g_imie_wiek": {
+      "uiType": "group",
+      "layout": "horizontal",
+      "fields": ["imie_nazwisko", "wiek"],
+      "className": "items-start"
+    },
+    "imie_nazwisko": {
+      "uiType": "text",
+      "placeholder": "Imię i nazwisko"
+    },
+    "wiek": {
+      "uiType": "number",
+      "label": "Wiek",
+      "placeholder": "Wiek"
+    },
+    "g_wypadanie": {
+      "uiType": "namedGroup",
+      "name": "g_wypadanie",
+      "label": "Wypadanie włosów",
+      "fields": ["wypadanie_nasilenie"],
+      "layout": "vertical"
+    },
+    "wypadanie_nasilenie": {
+      "uiType": "radio",
+      "layout": "horizontal",
+      "options": [
+        {
+          "label": "w normie",
+          "value": "w normie"
+        },
+        {
+          "label": "nasilone",
+          "value": "nasilone"
+        },
+        {
+          "label": "nadmierne",
+          "value": "nadmierne"
+        },
+        {
+          "label": "okresowe",
+          "value": "okresowe"
+        },
+        {
+          "label": "brak",
+          "value": "brak"
+        }
+      ]
+    }
+  }
+} 
