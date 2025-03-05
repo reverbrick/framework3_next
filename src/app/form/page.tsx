@@ -5,40 +5,161 @@ import { Main } from "@/components/layout/main";
 import { ProfileDropdown } from "@/components/profile-dropdown";
 import { Search } from "@/components/search";
 import { ThemeSwitch } from "@/components/theme-switch";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
+import { DynamicForm } from "@/components/dynamic-form";
+import type { FieldConfig, UISchema } from "@/lib/definitions";
 
-import { Button } from "@/components/ui/button";
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
+const userFormFields: FieldConfig[] = [
+  {
+    name: "name",
+    label: "Full Name",
+    type: "text",
+    required: true,
+    validations: [
+      { min: 2, message: "Name must be at least 2 characters long" },
+    ],
+  },
+  {
+    name: "email",
+    label: "Email Address",
+    type: "email",
+    required: true,
+  },
+  {
+    name: "password",
+    label: "Password",
+    type: "password",
+    required: true,
+    validations: [
+      { min: 8, message: "Password must be at least 8 characters long" },
+      {
+        pattern:
+          /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$/,
+        message:
+          "Password must contain at least one letter, one number, and one special character",
+      },
+    ],
+  },
+  {
+    name: "bio",
+    label: "Bio",
+    type: "text",
+    required: false,
+  },
+  {
+    name: "role",
+    label: "Role",
+    type: "text",
+    required: true,
+  },
+  {
+    name: "experience",
+    label: "Years of Experience",
+    type: "number",
+    required: true,
+  },
+  {
+    name: "terms",
+    label: "Terms and Conditions",
+    type: "text",
+    required: true,
+  },
+  {
+    name: "newsletter",
+    label: "Newsletter",
+    type: "text",
+    required: false,
+  },
+];
 
-const formSchema = z.object({
-  username: z.string().min(2, {
-    message: "Username must be at least 2 characters.",
-  }),
-});
+const userFormUISchema: UISchema = {
+  personalInfo: {
+    uiType: "namedGroup",
+    name: "personalInfo",
+    label: "Personal Information",
+    fields: ["name", "email", "password"],
+    layout: "vertical",
+  },
+  name: {
+    uiType: "text",
+    placeholder: "John Doe",
+    helperText: "Enter your full name as it appears on official documents.",
+  },
+  email: {
+    uiType: "email",
+    placeholder: "john@example.com",
+    helperText: "We'll never share your email with anyone else.",
+  },
+  password: {
+    uiType: "password",
+    helperText:
+      "Password must be at least 8 characters long and include a mix of letters, numbers, and special characters.",
+  },
+  spacer1: {
+    uiType: "spacer",
+    height: "1rem",
+  },
+  profileInfo: {
+    uiType: "namedGroup",
+    name: "profileInfo",
+    label: "Profile Information",
+    fields: ["bio", "roleAndExperience"],
+    layout: "vertical",
+  },
+  bio: {
+    uiType: "textarea",
+    rows: 4,
+    placeholder: "Tell us a little about yourself...",
+    helperText:
+      "Optional: Share your interests, hobbies, or anything else you'd like us to know.",
+  },
+  roleAndExperience: {
+    uiType: "group",
+    layout: "horizontal",
+    fields: ["role", "experience"],
+    className: "items-start",
+  },
+  role: {
+    uiType: "select",
+    options: [
+      { label: "Developer", value: "developer" },
+      { label: "Designer", value: "designer" },
+      { label: "Manager", value: "manager" },
+      { label: "Other", value: "other" },
+    ],
+    helperText: "Select the role that best describes your position.",
+  },
+  experience: {
+    uiType: "number",
+    placeholder: "0",
+    helperText: "Enter the number of years of experience you have.",
+  },
+  spacer2: {
+    uiType: "spacer",
+    height: "2rem",
+  },
+  preferences: {
+    uiType: "namedGroup",
+    name: "preferences",
+    label: "Preferences",
+    fields: ["newsletter", "terms"],
+    layout: "vertical",
+  },
+  newsletter: {
+    uiType: "checkbox",
+    options: [{ label: "Subscribe to our newsletter", value: "subscribed" }],
+    helperText: "Get the latest updates and news.",
+  },
+  terms: {
+    uiType: "checkbox",
+    options: [
+      { label: "I agree to the Terms and Conditions", value: "agreed" },
+    ],
+    helperText:
+      "You must agree to our Terms and Conditions to create an account.",
+  },
+};
 
 export default function Page() {
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      username: "",
-    },
-  });
-
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    console.log(values);
-  }
-
   return (
     <>
       <Header fixed>
@@ -59,27 +180,12 @@ export default function Page() {
           </div>
         </div>
         <div className="-mx-4 flex-1 overflow-auto px-4 py-1 lg:flex-row lg:space-x-12 lg:space-y-0">
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-              <FormField
-                control={form.control}
-                name="username"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Username</FormLabel>
-                    <FormControl>
-                      <Input placeholder="shadcn" {...field} />
-                    </FormControl>
-                    <FormDescription>
-                      This is your public display name.
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <Button type="submit">Submit</Button>
-            </form>
-          </Form>
+          <DynamicForm
+            fields={userFormFields}
+            uiSchema={userFormUISchema}
+            submitLabel="Create Account"
+            successRedirect="/dashboard"
+          />
         </div>
       </Main>
     </>
