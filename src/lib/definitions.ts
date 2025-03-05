@@ -41,11 +41,15 @@ export interface UISchemaFieldItem extends UISchemaItemBase {
 
 export interface UISchemaSpacerItem extends UISchemaItemBase {
   uiType: "spacer";
+  label?: string; //dg: no sense, but throws error
+  helperText?: string; //dg: no sense, but throws error
   height?: number | string;
 }
 
 export interface UISchemaGroupItem extends UISchemaItemBase {
   uiType: "group";
+  label?: string; //dg: no sense, but throws error
+  helperText?: string; //dg: no sense, but throws error
   fields: string[];
   layout?: "horizontal" | "vertical";
 }
@@ -54,6 +58,7 @@ export interface UISchemaNamedGroupItem extends UISchemaItemBase {
   uiType: "namedGroup";
   name: string;
   label: string;
+  helperText?: string; //dg: no sense, but throws error
   fields: string[];
   layout?: "horizontal" | "vertical";
 }

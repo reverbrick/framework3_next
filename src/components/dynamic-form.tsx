@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from "react";
 import { useActionState } from "react";
 import { processForm } from "@/app/form/actions/form";
 import type {
@@ -33,7 +34,24 @@ interface DynamicFormProps {
   successRedirect?: string;
 }
 
-const initialState: FormState = {
+type ActionState = {
+  errors: { [x: string]: string[] | undefined };
+  message: string;
+  success: boolean;
+  data?: undefined;
+} | {
+  message: string;
+  success: boolean;
+  data: { [x: string]: any };
+  errors?: undefined;
+} | {
+  message: string;
+  success: boolean;
+  errors?: undefined;
+  data?: undefined;
+};
+
+const initialState: ActionState = {
   message: "",
   errors: {},
   success: false,
@@ -45,11 +63,14 @@ export function DynamicForm({
   submitLabel = "Submit",
   successRedirect,
 }: DynamicFormProps) {
-  const boundAction = processForm.bind(null, fields);
-  const [state, formAction, pending] = useActionState(
-    boundAction,
-    initialState,
-  );
+  const boundAction = async (
+    state: ActionState,
+    formData: FormData
+  ): Promise<ActionState> => {
+    const result = await processForm(fields, state as FormState, formData);
+    return result as ActionState;
+  };
+  const [state, formAction, pending] = useActionState(boundAction, initialState);
   const [showSuccess, setShowSuccess] = useState(false);
 
   if (state?.success && !showSuccess) {
@@ -164,7 +185,7 @@ export function DynamicForm({
   );
 
   const renderUISchemaItem = useCallback(
-    (item: UISchemaItem, key: string): JSX.Element | null => {
+    (item: UISchemaItem, key: string): React.ReactElement | null => {
       switch (item.uiType) {
         case "namedGroup":
           return renderNamedGroup(item);

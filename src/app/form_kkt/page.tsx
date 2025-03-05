@@ -14,18 +14,12 @@ const fields: FieldConfig[] = [
     label: "Numer karty",
     type: "text", // Matches FieldType
     required: true,
-    validations: [
-      { min: 2, message: "Name must be at least 2 characters long" },
-    ],
   },
   {
     name: "imie_nazwisko",
     label: "Imię i nazwisko",
     type: "text", // Matches FieldType
     required: true,
-    validations: [
-      { min: 2, message: "Name must be at least 2 characters long" },
-    ],
   },
   {
     name: "wiek",
