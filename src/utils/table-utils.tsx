@@ -14,6 +14,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { MoreHorizontalIcon, ArrowUpDown } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
 
 type ColumnConfig<T> = {
   key: string;
@@ -38,122 +39,181 @@ export function generateColumns<T extends Record<string, any>>(
     }[];
   } = {}
 ): ColumnDef<T>[] {
-  const columns: ColumnDef<T>[] = [];
-
-  // Add selection column if selectable is true
-  if (options.selectable) {
-    columns.push({
-      id: "select",
-      header: ({ table }) => (
-        <Checkbox
-          checked={table.getIsAllPageRowsSelected()}
-          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-          aria-label="Select all"
-        />
-      ),
-      cell: ({ row }) => (
-        <Checkbox
-          checked={row.getIsSelected()}
-          onCheckedChange={(value) => row.toggleSelected(!!value)}
-          aria-label="Select row"
-        />
-      ),
-      enableSorting: false,
-      enableHiding: false,
-      size: 40,
-    });
-  }
-
-  // Add data columns
-  columnConfigs.forEach((config) => {
-    if (config.hidden) return;
-
-    const column: ColumnDef<T> = {
-      accessorKey: config.key,
-      header: ({ column }) => {
-        if (config.sortable === false) {
-          return config.label;
-        }
-        return (
-          <div className="flex w-full items-center">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="-ml-3 h-8 w-full justify-start"
-              onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-            >
-              {config.label}
-              <ArrowUpDown className="ml-1 h-4 w-4" />
-            </Button>
-          </div>
-        );
-      },
-      cell: ({ row }) => {
-        const value = row.getValue(config.key);
-        
-        // Use custom render function if provided
-        if (config.render) {
-          return config.render(value, row.original);
-        }
-
-        // Default rendering based on type
-        switch (config.type) {
-          case 'date':
-            if (!value) return "N/A";
-            try {
-              return new Date(value as string).toLocaleDateString();
-            } catch {
-              return "Invalid Date";
-            }
-          case 'boolean':
-            return value ? "Yes" : "No";
-          default:
-            return value || "N/A";
-        }
-      },
-      size: config.width,
-      minSize: config.minWidth,
-      maxSize: config.maxWidth,
-    };
-
-    // Add filter function if provided
-    if (config.filterFn) {
-      column.filterFn = config.filterFn;
+  try {
+    // Check if we have any column configs
+    if (!columnConfigs || columnConfigs.length === 0) {
+      toast({
+        variant: "destructive",
+        title: "Table Configuration Error",
+        description: "No columns were provided for the table. Please check your configuration.",
+      });
+      return [];
     }
 
-    columns.push(column);
-  });
+    const columns: ColumnDef<T>[] = [];
 
-  // Add actions column if actions are provided
-  if (options.actions?.length) {
-    columns.push({
-      id: "actions",
-      cell: ({ row }) => {
-        return (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-8 w-8 p-0">
-                <span className="sr-only">Open menu</span>
-                <MoreHorizontalIcon className="h-4 w-4" />
+    // Add selection column if selectable is true
+    if (options.selectable) {
+      columns.push({
+        id: "select",
+        header: ({ table }) => (
+          <Checkbox
+            checked={table.getIsAllPageRowsSelected()}
+            onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+            aria-label="Select all"
+          />
+        ),
+        cell: ({ row }) => (
+          <Checkbox
+            checked={row.getIsSelected()}
+            onCheckedChange={(value) => row.toggleSelected(!!value)}
+            aria-label="Select row"
+          />
+        ),
+        enableSorting: false,
+        enableHiding: false,
+        size: 40,
+      });
+    }
+
+    // Add data columns
+    columnConfigs.forEach((config) => {
+      if (config.hidden) return;
+
+      const column: ColumnDef<T> = {
+        accessorKey: config.key,
+        header: ({ column }) => {
+          if (config.sortable === false) {
+            return config.label;
+          }
+          return (
+            <div className="flex w-full items-center">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="-ml-3 h-8 w-full justify-start"
+                onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+              >
+                {config.label}
+                <ArrowUpDown className="ml-1 h-4 w-4" />
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-              {options.actions && options.actions.map((action, index) => (
-                <DropdownMenuItem
-                  key={index}
-                  onClick={() => action.onClick(row.original)}
-                >
-                  {action.label}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        );
-      },
-      size: 50,
-    });
-  }
+            </div>
+          );
+        },
+        cell: ({ row }) => {
+          try {
+            const value = row.getValue(config.key);
+            
+            // Use custom render function if provided
+            if (config.render) {
+              return config.render(value, row.original);
+            }
 
-  return columns;
+            // Default rendering based on type
+            switch (config.type) {
+              case 'date':
+                if (!value) return "N/A";
+                try {
+                  return new Date(value as string).toLocaleDateString();
+                } catch {
+                  return "Invalid Date";
+                }
+              case 'boolean':
+                return value ? "Yes" : "No";
+              default:
+                return value || "N/A";
+            }
+          } catch (error) {
+            console.error(`Error rendering cell for column ${config.key}:`, error);
+            return "Error loading data";
+          }
+        },
+        size: config.width,
+        minSize: config.minWidth,
+        maxSize: config.maxWidth,
+      };
+
+      // Add filter function if provided
+      if (config.filterFn) {
+        column.filterFn = config.filterFn;
+      }
+
+      columns.push(column);
+    });
+
+    // Add actions column if actions are provided
+    if (options.actions?.length) {
+      columns.push({
+        id: "actions",
+        cell: ({ row }) => {
+          return (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="h-8 w-8 p-0">
+                  <span className="sr-only">Open menu</span>
+                  <MoreHorizontalIcon className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                {options.actions && options.actions.map((action, index) => (
+                  <DropdownMenuItem
+                    key={index}
+                    onClick={() => {
+                      try {
+                        action.onClick(row.original);
+                      } catch (error) {
+                        console.error(`Error executing action ${action.label}:`, error);
+                        toast({
+                          variant: "destructive",
+                          title: "Action Failed",
+                          description: `Failed to execute ${action.label}. Please try again.`,
+                        });
+                      }
+                    }}
+                  >
+                    {action.label}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          );
+        },
+        size: 50,
+      });
+    }
+
+    return columns;
+  } catch (error: any) {
+    console.error("Error generating table columns:", error);
+    
+    // Handle specific Supabase error codes
+    if (error?.code === '42P01') {
+      toast({
+        variant: "destructive",
+        title: "Database Error",
+        description: "The requested table does not exist in the database. Please check your configuration.",
+      });
+    } else if (error?.code === 'PGRST116') {
+      toast({
+        variant: "destructive",
+        title: "Access Denied",
+        description: "You don't have permission to access this table. Please contact your administrator.",
+      });
+    } else if (error?.code === 'PGRST301') {
+      toast({
+        variant: "destructive",
+        title: "Connection Error",
+        description: "Unable to connect to the database. Please try again later.",
+      });
+    } else {
+      toast({
+        variant: "destructive",
+        title: "Table Error",
+        description: error?.message || "Failed to generate table columns. Please refresh the page.",
+      });
+    }
+    
+    return [];
+  }
 } 
