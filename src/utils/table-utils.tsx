@@ -139,7 +139,7 @@ export function generateColumns<T extends Record<string, any>>(
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>Actions</DropdownMenuLabel>
-              {options.actions.map((action, index) => (
+              {options.actions && options.actions.map((action, index) => (
                 <DropdownMenuItem
                   key={index}
                   onClick={() => action.onClick(row.original)}
