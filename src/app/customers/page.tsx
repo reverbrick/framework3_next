@@ -7,7 +7,7 @@ import { ProfileDropdown } from "@/components/profile-dropdown";
 import { Search } from "@/components/search";
 import { ThemeSwitch } from "@/components/theme-switch";
 import { DataTable } from "@/components/data-table";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { createClient } from "@/utils/supabase/client";
 import { Database } from "@/types/supabase";
 import { generateColumns } from "@/utils/table-utils";
 import { Row } from "@tanstack/react-table";
@@ -30,7 +30,7 @@ type Customer = {
 export default function Customers() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
-  const supabase = createClientComponentClient<Database>();
+  const supabase = createClient();
 
   const columns = useMemo(() => {
     return generateColumns<Customer>(
