@@ -11,6 +11,7 @@ import { createClient } from "@/utils/supabase/client";
 import { Database } from "@/types/supabase";
 import { generateColumns } from "@/utils/table-utils";
 import { Row } from "@tanstack/react-table";
+import { toast } from "@/hooks/use-toast";
 
 type Customer = {
   Index: number;
@@ -108,12 +109,43 @@ export default function Customers() {
           .select('*');
         
         if (error) {
-          throw error;
+          // Handle specific Supabase error cases
+          if (error.code === 'PGRST116') {
+            toast({
+              variant: "destructive",
+              title: "Access Denied",
+              description: "You don't have permission to view customers. Please contact your administrator.",
+            });
+          } else if (error.code === '42P01') {
+            toast({
+              variant: "destructive",
+              title: "Database Error",
+              description: "The customers table could not be found. Please contact support.",
+            });
+          } else if (error.code === 'PGRST301') {
+            toast({
+              variant: "destructive",
+              title: "Connection Error",
+              description: "Unable to connect to the database. Please try again later.",
+            });
+          } else {
+            toast({
+              variant: "destructive",
+              title: "Error Loading Customers",
+              description: error.message || "An unexpected error occurred while loading customers.",
+            });
+          }
+          return;
         }
 
         setCustomers(data || []);
       } catch (error) {
         console.error('Error fetching customers:', error);
+        toast({
+          variant: "destructive",
+          title: "Unexpected Error",
+          description: "An unexpected error occurred while loading customers. Please try again later.",
+        });
       } finally {
         setLoading(false);
       }
