@@ -9,6 +9,7 @@ import { AppSidebar } from "@/components/layout/app-sidebar";
 import { cn } from "@/lib/utils";
 import { StrictMode } from "react";
 import { ThemeProvider } from "@/context/theme-context";
+import { Toaster } from "@/components/ui/toaster";
 
 export const metadata: Metadata = {
   title: "Framework3",
@@ -45,6 +46,7 @@ export default function RootLayout({
                 >
                   {children}
                 </div>
+                <Toaster />
               </SidebarProvider>
             </SearchProvider>
           </ThemeProvider>
