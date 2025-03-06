@@ -1,12 +1,4 @@
-[?25l
-    Select a project:                                                                                                      
-                                                                                                                           
-  >  1. ysvdpsvhyrljqkkrhmtt [name: supabase-orange-river, org: vercel_icfg_ccxkq1NMqLBybmR3FFFZFjn9, region: eu-central-1]
-    2. pzazllvnmgurwjocfyrf [name: metalwit, org: vercel_icfg_ccxkq1NMqLBybmR3FFFZFjn9, region: eu-central-1]              
-                                                                                                                           
-                                                                                                                           
-    ↑/k up • ↓/j down • / filter • q quit • ? more                                                                         
-                                                                                                                           [0D[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[0D[2K [0D[2K[?25h[?1002l[?1003l[?1006lexport type Json =
+export type Json =
   | string
   | number
   | boolean
