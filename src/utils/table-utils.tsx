@@ -186,7 +186,10 @@ export function generateColumns<T extends Record<string, any>>(
 
     return columns;
   } catch (error: any) {
-    handleSupabaseError(error, "table column generation");
+    handleSupabaseError(error, { 
+      context: "table column generation",
+      fallbackMessage: "Failed to generate table columns. Please check your configuration."
+    });
     return [];
   }
 } 
