@@ -212,7 +212,10 @@ export const generateTableConfig = (
       filters: tableFilters,
     }
   } catch (error: any) {
-    handleSupabaseError(error, `table configuration generation for ${tableName}`);
+    handleSupabaseError(error, { 
+      context: `table configuration generation for ${tableName}`,
+      fallbackMessage: `Failed to generate table configuration for ${tableName}. Please check your configuration.`
+    });
     return {
       name: tableName,
       description,
