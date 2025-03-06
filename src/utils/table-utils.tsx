@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { MoreHorizontalIcon, ArrowUpDown } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { handleSupabaseError } from "@/utils/supabase-error-handler";
 
 type ColumnConfig<T> = {
   key: string;
@@ -185,35 +186,7 @@ export function generateColumns<T extends Record<string, any>>(
 
     return columns;
   } catch (error: any) {
-    console.error("Error generating table columns:", error);
-    
-    // Handle specific Supabase error codes
-    if (error?.code === '42P01') {
-      toast({
-        variant: "destructive",
-        title: "Database Error",
-        description: "The requested table does not exist in the database. Please check your configuration.",
-      });
-    } else if (error?.code === 'PGRST116') {
-      toast({
-        variant: "destructive",
-        title: "Access Denied",
-        description: "You don't have permission to access this table. Please contact your administrator.",
-      });
-    } else if (error?.code === 'PGRST301') {
-      toast({
-        variant: "destructive",
-        title: "Connection Error",
-        description: "Unable to connect to the database. Please try again later.",
-      });
-    } else {
-      toast({
-        variant: "destructive",
-        title: "Table Error",
-        description: error?.message || "Failed to generate table columns. Please refresh the page.",
-      });
-    }
-    
+    handleSupabaseError(error, "table column generation");
     return [];
   }
 } 

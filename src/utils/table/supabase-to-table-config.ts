@@ -1,4 +1,5 @@
 import { generateTableConfig } from './generate-table-config'
+import { handleSupabaseError } from "@/utils/supabase-error-handler";
 
 type SupabaseType = 'text' | 'varchar' | 'int8' | 'int4' | 'bool' | 'timestamp' | 'date' | 'jsonb' | 'enum'
 
@@ -94,8 +95,18 @@ export const generateTableConfigFromSupabase = (
     }>
   }
 ) => {
-  const columns = table.columns.map(convertSupabaseColumn)
-  return generateTableConfig(table.name, options.description, columns, options)
+  try {
+    const columns = table.columns.map(convertSupabaseColumn)
+    return generateTableConfig(table.name, options.description, columns, options)
+  } catch (error: any) {
+    handleSupabaseError(error, `Supabase table configuration generation for ${table.name}`);
+    return {
+      name: table.name,
+      description: options.description,
+      columns: [],
+      filters: [],
+    };
+  }
 }
 
 // Example usage with Supabase CLI generated types:

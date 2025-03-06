@@ -1,32 +1,14 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import { Header } from "@/components/layout/header";
-import { Main } from "@/components/layout/main";
-import { ProfileDropdown } from "@/components/profile-dropdown";
-import { Search } from "@/components/search";
-import { ThemeSwitch } from "@/components/theme-switch";
 import { DataTable } from "@/components/data-table";
+import { DataTableLoading } from "@/components/data-table-loading";
+import { PageLayout } from "@/components/layout/page-layout";
 import { createClient } from "@/utils/supabase/client";
-import { Database } from "@/types/supabase";
 import { generateColumns } from "@/utils/table-utils";
+import { handleSupabaseError } from "@/utils/supabase-error-handler";
 import { Row } from "@tanstack/react-table";
-import { toast } from "@/hooks/use-toast";
-
-type Customer = {
-  Index: number;
-  "Customer Id": string | null;
-  "First Name": string | null;
-  "Last Name": string | null;
-  Email: string | null;
-  Company: string | null;
-  City: string | null;
-  Country: string | null;
-  "Phone 1": string | null;
-  "Phone 2": string | null;
-  Website: string | null;
-  "Subscription Date": string | null;
-};
+import { Customer } from "@/types/customer";
 
 export default function Customers() {
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -109,42 +91,18 @@ export default function Customers() {
           .select('*');
         
         if (error) {
-          // Handle specific Supabase error cases
-          if (error.code === 'PGRST116') {
-            toast({
-              variant: "destructive",
-              title: "Access Denied",
-              description: "You don't have permission to view customers. Please contact your administrator.",
-            });
-          } else if (error.code === '42P01') {
-            toast({
-              variant: "destructive",
-              title: "Database Error",
-              description: "The customers table could not be found. Please contact support.",
-            });
-          } else if (error.code === 'PGRST301') {
-            toast({
-              variant: "destructive",
-              title: "Connection Error",
-              description: "Unable to connect to the database. Please try again later.",
-            });
-          } else {
-            toast({
-              variant: "destructive",
-              title: "Error Loading Customers",
-              description: error.message || "An unexpected error occurred while loading customers.",
-            });
-          }
+          handleSupabaseError(error, { 
+            context: "loading customers",
+            fallbackMessage: "Failed to load customers. Please try again later."
+          });
           return;
         }
 
         setCustomers(data || []);
       } catch (error) {
-        console.error('Error fetching customers:', error);
-        toast({
-          variant: "destructive",
-          title: "Unexpected Error",
-          description: "An unexpected error occurred while loading customers. Please try again later.",
+        handleSupabaseError(error as Error, { 
+          context: "loading customers",
+          fallbackMessage: "An unexpected error occurred while loading customers."
         });
       } finally {
         setLoading(false);
@@ -154,37 +112,18 @@ export default function Customers() {
     fetchCustomers();
   }, [supabase]);
 
-  if (loading) {
-    return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="text-lg">Loading customers...</div>
-      </div>
-    );
-  }
-
   return (
-    <>
-      <Header fixed>
-        <Search />
-        <div className="ml-auto flex items-center space-x-4">
-          <ThemeSwitch />
-          <ProfileDropdown />
-        </div>
-      </Header>
-
-      <Main>
-        <div className="mb-2 flex items-center justify-between space-y-2 flex-wrap">
-          <div>
-            <h2 className="text-2xl font-bold tracking-tight">Customers</h2>
-            <p className="text-muted-foreground">
-              Manage your customer relationships
-            </p>
-          </div>
-        </div>
+    <PageLayout 
+      title="Customers"
+      description="Manage your customer relationships"
+    >
+      {loading ? (
+        <DataTableLoading message="Loading customers..." />
+      ) : (
         <div className="-mx-4 flex-1 overflow-auto px-4 py-1">
           <DataTable data={customers} columns={columns} />
         </div>
-      </Main>
-    </>
+      )}
+    </PageLayout>
   );
 } 

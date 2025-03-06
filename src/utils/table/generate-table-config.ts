@@ -1,4 +1,5 @@
 import { IconShield, IconUserShield, IconUsersGroup, IconCash } from '@tabler/icons-react'
+import { handleSupabaseError } from "@/utils/supabase-error-handler";
 
 type SupabaseEnum = {
   [key: string]: string | number
@@ -154,59 +155,69 @@ export const generateTableConfig = (
     customFilters?: FilterConfig[]
   }
 ): TableConfig => {
-  const {
-    excludeColumns = [],
-    includeSelect = true,
-    includeActions = true,
-    customColumns = [],
-    customFilters = [],
-  } = options || {}
+  try {
+    const {
+      excludeColumns = [],
+      includeSelect = true,
+      includeActions = true,
+      customColumns = [],
+      customFilters = [],
+    } = options || {}
 
-  const tableColumns: ColumnConfig[] = []
-  const tableFilters: FilterConfig[] = []
+    const tableColumns: ColumnConfig[] = []
+    const tableFilters: FilterConfig[] = []
 
-  // Add select column if needed
-  if (includeSelect) {
-    tableColumns.push({
-      id: 'select',
-      type: 'checkbox',
-      sticky: true,
-      enableSorting: false,
-      enableHiding: false,
-    })
-  }
+    // Add select column if needed
+    if (includeSelect) {
+      tableColumns.push({
+        id: 'select',
+        type: 'checkbox',
+        sticky: true,
+        enableSorting: false,
+        enableHiding: false,
+      })
+    }
 
-  // Process each column
-  columns
-    .filter(col => !excludeColumns.includes(col.name))
-    .forEach(column => {
-      const columnConfig = generateColumnConfig(column)
-      tableColumns.push(columnConfig)
+    // Process each column
+    columns
+      .filter(col => !excludeColumns.includes(col.name))
+      .forEach(column => {
+        const columnConfig = generateColumnConfig(column)
+        tableColumns.push(columnConfig)
 
-      const filterConfig = generateFilterConfig(column)
-      if (filterConfig) {
-        tableFilters.push(filterConfig)
-      }
-    })
+        const filterConfig = generateFilterConfig(column)
+        if (filterConfig) {
+          tableFilters.push(filterConfig)
+        }
+      })
 
-  // Add custom columns
-  tableColumns.push(...customColumns)
+    // Add custom columns
+    tableColumns.push(...customColumns)
 
-  // Add actions column if needed
-  if (includeActions) {
-    tableColumns.push({
-      id: 'actions',
-      type: 'actions',
-    })
-  }
+    // Add actions column if needed
+    if (includeActions) {
+      tableColumns.push({
+        id: 'actions',
+        type: 'actions',
+      })
+    }
 
-  // Add custom filters
-  tableFilters.push(...customFilters)
+    // Add custom filters
+    tableFilters.push(...customFilters)
 
-  return {
-    name: tableName,
-    description,
-    columns: tableColumns,
-    filters: tableFilters,
+    return {
+      name: tableName,
+      description,
+      columns: tableColumns,
+      filters: tableFilters,
+    }
+  } catch (error: any) {
+    handleSupabaseError(error, `table configuration generation for ${tableName}`);
+    return {
+      name: tableName,
+      description,
+      columns: [],
+      filters: [],
+    };
   }
 } 
