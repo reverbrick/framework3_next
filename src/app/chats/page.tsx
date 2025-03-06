@@ -21,11 +21,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
-import { Header } from '@/components/layout/header'
 import { Main } from '@/components/layout/main'
-import { ProfileDropdown } from '@/components/profile-dropdown'
-import { Search } from '@/components/search'
-import { ThemeSwitch } from '@/components/theme-switch'
 // Fake Data
 import convoData from './data/convo.json'
 
@@ -63,15 +59,6 @@ export default function Chats() {
 
   return (
     <>
-      {/* ===== Top Heading ===== */}
-      <Header>
-        <Search />
-        <div className='ml-auto flex items-center space-x-4'>
-          <ThemeSwitch />
-          <ProfileDropdown />
-        </div>
-      </Header>
-
       <Main fixed>
         <section className='flex h-full gap-6'>
           {/* Left Side */}
@@ -248,54 +235,28 @@ export default function Chats() {
                   <div className='space-x-1'>
                     <Button
                       size='icon'
-                      type='button'
                       variant='ghost'
-                      className='h-8 rounded-md'
+                      className='h-8 w-8 rounded-full'
                     >
-                      <IconPlus size={20} className='stroke-muted-foreground' />
+                      <IconPhotoPlus size={20} className='stroke-muted-foreground' />
                     </Button>
                     <Button
                       size='icon'
-                      type='button'
                       variant='ghost'
-                      className='hidden h-8 rounded-md lg:inline-flex'
+                      className='h-8 w-8 rounded-full'
                     >
-                      <IconPhotoPlus
-                        size={20}
-                        className='stroke-muted-foreground'
-                      />
-                    </Button>
-                    <Button
-                      size='icon'
-                      type='button'
-                      variant='ghost'
-                      className='hidden h-8 rounded-md lg:inline-flex'
-                    >
-                      <IconPaperclip
-                        size={20}
-                        className='stroke-muted-foreground'
-                      />
+                      <IconPaperclip size={20} className='stroke-muted-foreground' />
                     </Button>
                   </div>
-                  <label className='flex-1'>
-                    <span className='sr-only'>Chat Text Box</span>
-                    <input
-                      type='text'
-                      placeholder='Type your messages...'
-                      className='h-8 w-full bg-inherit focus-visible:outline-none'
-                    />
-                  </label>
-                  <Button
-                    variant='ghost'
-                    size='icon'
-                    className='hidden sm:inline-flex'
-                  >
+                  <input
+                    type='text'
+                    className='flex-1 bg-inherit text-sm focus-visible:outline-none'
+                    placeholder='Type a message...'
+                  />
+                  <Button size='icon' className='h-8 w-8 rounded-full'>
                     <IconSend size={20} />
                   </Button>
                 </div>
-                <Button className='h-full sm:hidden'>
-                  <IconSend size={18} /> Send
-                </Button>
               </form>
             </div>
           </div>

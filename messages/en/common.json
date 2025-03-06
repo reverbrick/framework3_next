@@ -1,0 +1,45 @@
+{
+  "navigation": {
+    "dashboard": "Dashboard",
+    "customers": "Customers",
+    "products": "Products",
+    "settings": "Settings",
+    "help": "Help Center"
+  },
+  "auth": {
+    "signIn": "Sign In",
+    "signOut": "Sign Out",
+    "email": "Email",
+    "password": "Password",
+    "forgotPassword": "Forgot Password?",
+    "rememberMe": "Remember me",
+    "submit": "Submit"
+  },
+  "common": {
+    "search": "Search",
+    "theme": {
+      "light": "Light Mode",
+      "dark": "Dark Mode"
+    },
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "actions": "Actions",
+    "switchLanguage": "Switch language"
+  },
+  "table": {
+    "title": "The table",
+    "description": "Manage your users and their roles here.",
+    "noResults": "No results",
+    "previous": "Previous",
+    "next": "Next",
+    "sort": {
+      "asc": "Sort ascending",
+      "desc": "Sort descending"
+    }
+  }
+} 

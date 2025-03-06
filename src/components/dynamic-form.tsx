@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useActionState } from "react";
-import { processForm } from "@/app/form/actions/form";
+import { processForm } from "@/app/forms/dynamic/actions/form";
 import type {
   FieldConfig,
   UISchema,

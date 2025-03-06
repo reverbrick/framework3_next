@@ -99,7 +99,10 @@ export const generateTableConfigFromSupabase = (
     const columns = table.columns.map(convertSupabaseColumn)
     return generateTableConfig(table.name, options.description, columns, options)
   } catch (error: any) {
-    handleSupabaseError(error, `Supabase table configuration generation for ${table.name}`);
+    handleSupabaseError(error, { 
+      context: `Supabase table configuration generation for ${table.name}`,
+      fallbackMessage: `Failed to generate table configuration from Supabase for ${table.name}. Please check your configuration.`
+    });
     return {
       name: table.name,
       description: options.description,

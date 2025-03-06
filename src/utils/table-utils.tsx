@@ -10,7 +10,6 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { MoreHorizontalIcon, ArrowUpDown } from "lucide-react";
@@ -30,15 +29,17 @@ type ColumnConfig<T> = {
   filterFn?: FilterFn<T>;
 };
 
+type TableOptions<T> = {
+  selectable?: boolean;
+  actions?: {
+    label: string;
+    onClick: (row: T) => void;
+  }[];
+};
+
 export function generateColumns<T extends Record<string, any>>(
   columnConfigs: ColumnConfig<T>[],
-  options: {
-    selectable?: boolean;
-    actions?: {
-      label: string;
-      onClick: (row: T) => void;
-    }[];
-  } = {}
+  options: TableOptions<T> = {}
 ): ColumnDef<T>[] {
   try {
     // Check if we have any column configs

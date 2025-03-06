@@ -1,0 +1,45 @@
+{
+  "navigation": {
+    "dashboard": "Panel główny",
+    "customers": "Klienci",
+    "products": "Produkty",
+    "settings": "Ustawienia",
+    "help": "Centrum pomocy"
+  },
+  "auth": {
+    "signIn": "Zaloguj się",
+    "signOut": "Wyloguj się",
+    "email": "Adres e-mail",
+    "password": "Hasło",
+    "forgotPassword": "Zapomniałeś hasła?",
+    "rememberMe": "Zapamiętaj mnie",
+    "submit": "Zatwierdź"
+  },
+  "common": {
+    "search": "Szukaj",
+    "theme": {
+      "light": "Tryb jasny",
+      "dark": "Tryb ciemny"
+    },
+    "loading": "Ładowanie...",
+    "error": "Błąd",
+    "success": "Sukces",
+    "save": "Zapisz",
+    "cancel": "Anuluj",
+    "delete": "Usuń",
+    "edit": "Edytuj",
+    "actions": "Akcje",
+    "switchLanguage": "Zmień język"
+  },
+  "table": {
+    "title": "Tabela",
+    "description": "Zarządzaj użytkownikami i ich rolami tutaj.",
+    "noResults": "Brak wyników",
+    "previous": "Poprzednia",
+    "next": "Następna",
+    "sort": {
+      "asc": "Sortuj rosnąco",
+      "desc": "Sortuj malejąco"
+    }
+  }
+} 

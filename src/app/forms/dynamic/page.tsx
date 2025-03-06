@@ -1,10 +1,6 @@
 "use client";
 
-import { Header } from "@/components/layout/header";
 import { Main } from "@/components/layout/main";
-import { ProfileDropdown } from "@/components/profile-dropdown";
-import { Search } from "@/components/search";
-import { ThemeSwitch } from "@/components/theme-switch";
 import { DynamicForm } from "@/components/dynamic-form";
 import type { FieldConfig, UISchema } from "@/lib/definitions";
 
@@ -162,14 +158,6 @@ const userFormUISchema: UISchema = {
 export default function Page() {
   return (
     <>
-      <Header fixed>
-        <Search />
-        <div className="ml-auto flex items-center space-x-4">
-          <ThemeSwitch />
-          <ProfileDropdown />
-        </div>
-      </Header>
-
       <Main>
         <div className="mb-2 flex items-center justify-between space-y-2 flex-wrap">
           <div>

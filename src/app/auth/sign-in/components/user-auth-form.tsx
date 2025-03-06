@@ -16,6 +16,9 @@ import {
 import { Input } from '@/components/ui/input'
 import { PasswordInput } from '@/components/password-input'
 import Link from 'next/link'
+import { createClient } from '@/utils/supabase/client'
+import { useRouter } from 'next/navigation'
+import { handleSupabaseError } from '@/utils/supabase-error-handler'
 
 type UserAuthFormProps = HTMLAttributes<HTMLDivElement>
 
@@ -36,6 +39,8 @@ const formSchema = z.object({
 
 export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
   const [isLoading, setIsLoading] = useState(false)
+  const router = useRouter()
+  const supabase = createClient()
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -45,14 +50,59 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
     },
   })
 
-  function onSubmit(data: z.infer<typeof formSchema>) {
-    setIsLoading(true)
-    // eslint-disable-next-line no-console
-    console.log(data)
+  async function onSubmit(data: z.infer<typeof formSchema>) {
+    try {
+      setIsLoading(true)
+      const { error } = await supabase.auth.signInWithPassword({
+        email: data.email,
+        password: data.password,
+      })
 
-    setTimeout(() => {
+      if (error) {
+        handleSupabaseError(error, { 
+          context: "sign in",
+          fallbackMessage: "Failed to sign in. Please check your credentials."
+        })
+        return
+      }
+
+      // Redirect to dashboard or home page after successful login
+      router.push('/dashboard')
+      router.refresh()
+    } catch (error) {
+      handleSupabaseError(error as Error, { 
+        context: "sign in",
+        fallbackMessage: "An unexpected error occurred during sign in."
+      })
+    } finally {
       setIsLoading(false)
-    }, 3000)
+    }
+  }
+
+  const handleOAuthSignIn = async (provider: 'github' | 'facebook') => {
+    try {
+      setIsLoading(true)
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      })
+
+      if (error) {
+        handleSupabaseError(error, { 
+          context: `${provider} sign in`,
+          fallbackMessage: `Failed to sign in with ${provider}.`
+        })
+      }
+    } catch (error) {
+      handleSupabaseError(error as Error, { 
+        context: `${provider} sign in`,
+        fallbackMessage: `An unexpected error occurred during ${provider} sign in.`
+      })
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -95,7 +145,7 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
               )}
             />
             <Button className='mt-2' disabled={isLoading}>
-              Login
+              {isLoading ? 'Signing in...' : 'Login'}
             </Button>
 
             <div className='relative my-2'>
@@ -115,6 +165,7 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
                 className='w-full'
                 type='button'
                 disabled={isLoading}
+                onClick={() => handleOAuthSignIn('github')}
               >
                 <IconBrandGithub className='h-4 w-4' /> GitHub
               </Button>
@@ -123,6 +174,7 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
                 className='w-full'
                 type='button'
                 disabled={isLoading}
+                onClick={() => handleOAuthSignIn('facebook')}
               >
                 <IconBrandFacebook className='h-4 w-4' /> Facebook
               </Button>
