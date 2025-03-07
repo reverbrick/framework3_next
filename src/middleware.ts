@@ -44,16 +44,11 @@ export async function middleware(request: NextRequest) {
 
   const { data: { session } } = await supabase.auth.getSession()
 
-  // If there's no session and the user is trying to access a protected route
+  // Only redirect if we're on a protected route without a session
   if (!session && !isPublicRoute(request.nextUrl.pathname)) {
     const redirectUrl = new URL('/auth/sign-in', request.url)
     redirectUrl.searchParams.set('redirectedFrom', request.nextUrl.pathname)
     return NextResponse.redirect(redirectUrl)
-  }
-
-  // If there's a session and the user is trying to access auth routes
-  if (session && shouldRedirectWhenLoggedIn(request.nextUrl.pathname)) {
-    return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
   return response
@@ -66,8 +61,8 @@ export const config = {
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
-     * Feel free to modify this pattern to include more paths.
+     * - public folder
      */
-    '/((?!_next/static|_next/image|favicon.ico).*)',
+    '/((?!_next/static|_next/image|favicon.ico|public).*)',
   ],
 } 

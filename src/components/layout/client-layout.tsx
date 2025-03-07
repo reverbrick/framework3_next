@@ -43,8 +43,6 @@ export function ClientLayout({ children }: ClientLayoutProps) {
           // Handle redirects based on session state
           if (session && shouldRedirectWhenLoggedIn(pathname)) {
             router.replace('/dashboard');
-          } else if (!session && !isPublicRoute(pathname)) {
-            router.replace('/auth/sign-in');
           }
         }
       } catch (error) {
@@ -83,6 +81,11 @@ export function ClientLayout({ children }: ClientLayoutProps) {
     };
   }, [supabase.auth, router, pathname]);
 
+  // Don't render layout for auth pages
+  if (pathname?.startsWith('/auth')) {
+    return children;
+  }
+
   // Show loading state only for protected routes
   if (isLoading && !isPublicRoute(pathname)) {
     return (
@@ -90,11 +93,6 @@ export function ClientLayout({ children }: ClientLayoutProps) {
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
     );
-  }
-
-  // Don't render layout for auth pages
-  if (pathname?.startsWith('/auth')) {
-    return children;
   }
 
   return (
