@@ -40,7 +40,7 @@ export default async function FormPage({
   }
 
   // If form exists but has null fields or empty fields array, return 404
-  if (!formDefinition.fields || formDefinition.fields === null || formDefinition.fields.length === 0) {
+  if (!formDefinition.fields || !Array.isArray(formDefinition.fields) || formDefinition.fields.length === 0) {
     notFound();
   }
 
