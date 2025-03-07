@@ -135,8 +135,8 @@ export function generateColumns<T extends Record<string, any>>(
         size: config.width,
         minSize: config.minWidth,
         maxSize: config.maxWidth,
-        enableHiding: config.enableHiding !== false,
-        enableSorting: config.enableSorting !== false,
+        enableHiding: config.enableHiding ?? true,
+        enableSorting: config.enableSorting ?? true,
       };
 
       // Add filter function if provided
