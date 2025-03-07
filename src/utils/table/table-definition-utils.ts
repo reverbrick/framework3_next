@@ -1,25 +1,12 @@
 import { createClient } from "@/utils/supabase/client";
 import { handleSupabaseError } from "@/utils/supabase-error-handler";
 import { Database } from "@/types/supabase";
-
-export type SupabaseColumn = {
-  name: string;
-  type: string;
-  is_nullable: boolean;
-  format?: string;
-  enums?: string[];
-  references?: string;
-};
-
-export type TableDefinition = {
-  table_name: string;
-  schema_name: string;
-  columns: SupabaseColumn[];
-  name?: string | null;
-  description?: string | null;
-};
+import { TableDefinition, SupabaseColumn } from "@/types/table";
 
 type TableName = keyof Database['public']['Tables'];
+type TableDefinitionsTable = Database['public']['Tables']['table_definitions'];
+
+const SYSTEM_TABLES = ['table_definitions', 'form_definitions'] as const;
 
 /**
  * Gets a table definition from the database
@@ -30,29 +17,28 @@ export async function getTableDefinition(tableName: string): Promise<TableDefini
   const supabase = createClient();
   
   try {
-    const { data: definition, error } = await supabase
-      .from('table_definitions')
+    const { data, error } = await supabase
+      .from('table_definitions' as typeof SYSTEM_TABLES[number])
       .select('*')
       .eq('table_name', tableName)
       .single();
 
     if (error) {
-      if (error.code === 'PGRST116') { // Not found
-        return null;
-      }
-      handleSupabaseError(error, {
-        context: `fetching table definition for ${tableName}`,
-        fallbackMessage: "Failed to fetch table definition."
-      });
+      console.error('Error fetching table definition:', error);
       return null;
     }
 
-    return definition;
-  } catch (error: any) {
-    handleSupabaseError(error, {
-      context: `fetching table definition for ${tableName}`,
-      fallbackMessage: "Failed to fetch table definition."
-    });
+    // Convert the data to the correct type
+    const tableData = data as TableDefinitionsTable['Row'];
+    return {
+      table_name: tableData.table_name,
+      schema_name: tableData.schema_name,
+      columns: tableData.columns as TableDefinition['columns'],
+      name: tableData.name,
+      description: tableData.description
+    };
+  } catch (error) {
+    console.error('Error in getTableDefinition:', error);
     return null;
   }
 }
@@ -69,7 +55,7 @@ export async function generateAndSaveTableDefinition(tableName: string): Promise
   try {
     // First check if the table exists in the database
     const { error: tableCheckError } = await supabase
-      .from(tableName)
+      .from(tableName as TableName)
       .select('count')
       .limit(1);
 
@@ -87,7 +73,7 @@ export async function generateAndSaveTableDefinition(tableName: string): Promise
 
     // Check if definition already exists
     const { data: existingDefinition, error: fetchError } = await supabase
-      .from('table_definitions')
+      .from('table_definitions' as typeof SYSTEM_TABLES[number])
       .select('*')
       .eq('table_name', tableName)
       .single();
@@ -101,13 +87,13 @@ export async function generateAndSaveTableDefinition(tableName: string): Promise
     }
 
     // If definition exists and has columns, return true
-    if (existingDefinition?.columns) {
+    if (existingDefinition && 'columns' in existingDefinition && existingDefinition.columns) {
       return true;
     }
 
     // Get column information from the database
     const { data: columns, error: columnsError } = await supabase
-      .from(tableName)
+      .from(tableName as TableName)
       .select('*')
       .limit(1);
 
@@ -150,14 +136,14 @@ export async function generateAndSaveTableDefinition(tableName: string): Promise
 
     // Create or update the table definition
     const { error: upsertError } = await supabase
-      .from('table_definitions')
+      .from('table_definitions' as typeof SYSTEM_TABLES[number])
       .upsert({
         table_name: tableName,
         schema_name: 'public',
         columns: columnDefinitions,
         name: defaultName,
         description: defaultDescription,
-      }, {
+      } as TableDefinitionsTable['Insert'], {
         onConflict: 'table_name'
       });
 
@@ -183,36 +169,30 @@ export async function generateAndSaveTableDefinition(tableName: string): Promise
   }
 }
 
-export async function saveTableDefinition(definition: TableDefinition): Promise<boolean> {
+export async function saveTableDefinition(tableName: string, definition: TableDefinition): Promise<boolean> {
   const supabase = createClient();
   
   try {
     const { error } = await supabase
-      .from('table_definitions')
+      .from('table_definitions' as typeof SYSTEM_TABLES[number])
       .upsert({
-        table_name: definition.table_name,
+        table_name: tableName,
         schema_name: definition.schema_name,
         columns: definition.columns,
         name: definition.name,
-        description: definition.description,
-      }, {
+        description: definition.description
+      } as TableDefinitionsTable['Insert'], {
         onConflict: 'table_name'
       });
 
     if (error) {
-      handleSupabaseError(error, {
-        context: `saving table definition for ${definition.table_name}`,
-        fallbackMessage: "Failed to save table definition."
-      });
+      console.error('Error saving table definition:', error);
       return false;
     }
 
     return true;
-  } catch (error: any) {
-    handleSupabaseError(error, {
-      context: `saving table definition for ${definition.table_name}`,
-      fallbackMessage: "Failed to save table definition."
-    });
+  } catch (error) {
+    console.error('Error in saveTableDefinition:', error);
     return false;
   }
 }

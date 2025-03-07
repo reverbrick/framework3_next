@@ -1,10 +1,7 @@
 export interface ServerSideTableState {
   pageIndex: number;
   pageSize: number;
-  sorting: Array<{
-    id: string;
-    desc: boolean;
-  }>;
+  sorting: { id: string; desc: boolean }[];
 }
 
 export function getDefaultTableState(): ServerSideTableState {

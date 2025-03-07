@@ -5,10 +5,14 @@ import { DataTable } from '@/components/data-table';
 import { DataTableLoading } from '@/components/data-table-loading';
 import { DataTableColumnHeader } from '@/components/data-table-column-header';
 import { useState, useMemo, useEffect } from 'react';
-import { ServerSideTableState, getDefaultTableState } from '@/utils/table-state';
+import { ServerSideTableState, getDefaultTableState } from '../utils/table-state';
 import { createClient } from '@/utils/supabase/client';
 import { handleSupabaseError } from "@/utils/supabase-error-handler";
 import { generateColumnsFromConfig } from '@/utils/table-config-utils';
+import { Database } from "@/types/supabase";
+
+type TableName = keyof Database['public']['Tables'];
+type TableRow = Database['public']['Tables'][TableName]['Row'];
 
 interface DataTableWrapperProps {
   config: TableConfig;
@@ -16,7 +20,7 @@ interface DataTableWrapperProps {
 }
 
 export function DataTableWrapper({ config, tableName }: DataTableWrapperProps) {
-  const [data, setData] = useState<any[]>([]);
+  const [data, setData] = useState<Record<string, any>[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [tableState, setTableState] = useState<ServerSideTableState>(getDefaultTableState());
@@ -43,23 +47,20 @@ export function DataTableWrapper({ config, tableName }: DataTableWrapperProps) {
   };
 
   useEffect(() => {
-    async function fetchData() {
+    const fetchData = async () => {
       try {
         setLoading(true);
         setError(null);
 
         // First check if the table exists
         const { error: tableCheckError } = await supabase
-          .from(tableName)
+          .from(tableName as TableName)
           .select('count')
           .limit(1);
 
         if (tableCheckError) {
-          console.error('Table check error:', tableCheckError);
-          if (tableCheckError.code === '42P01') { // Table does not exist
-            throw new Error(`Table "${tableName}" does not exist in the database`);
-          }
-          throw tableCheckError;
+          console.error('Error checking table:', tableCheckError);
+          return;
         }
 
         // Get only the columns we want to display
@@ -67,7 +68,7 @@ export function DataTableWrapper({ config, tableName }: DataTableWrapperProps) {
         console.log('Fetching columns:', columnIds);
         
         let query = supabase
-          .from(tableName)
+          .from(tableName as TableName)
           .select('*', { count: 'exact' });
 
         // Apply sorting
@@ -93,10 +94,10 @@ export function DataTableWrapper({ config, tableName }: DataTableWrapperProps) {
         }
 
         // Filter the data to only include the columns we want
-        const filteredData = data?.map(row => {
-          const filteredRow: any = {};
+        const filteredData = (data as TableRow[])?.map(row => {
+          const filteredRow: Record<string, any> = {};
           columnIds.forEach(id => {
-            filteredRow[id] = row[id];
+            filteredRow[id] = (row as any)[id];
           });
           return filteredRow;
         }) || [];
@@ -115,7 +116,7 @@ export function DataTableWrapper({ config, tableName }: DataTableWrapperProps) {
       } finally {
         setLoading(false);
       }
-    }
+    };
 
     fetchData();
   }, [tableName, tableState.pageIndex, tableState.pageSize, tableState.sorting, config.columns]);
