@@ -9,6 +9,9 @@ import { generateFormConfigFromDefinition } from "@/utils/form/form-config-utils
 import { Form } from "@/components/form/form";
 import { FormConfig } from "@/utils/form/form-config-utils";
 import { FormDefinition } from "@/utils/form/form-definition-utils";
+import { Database } from "@/types/supabase";
+
+type TableName = keyof Database['public']['Tables'];
 
 interface FormClientProps {
   formName: string;
@@ -59,9 +62,18 @@ export default function FormClient({ formName, formDescription }: FormClientProp
           setDisplayName(definition.name || formName);
           setDisplayDescription(definition.description || formDescription);
 
+          // Convert the definition to the correct type
+          const formDefinition: FormDefinition = {
+            form_name: definition.form_name,
+            name: definition.name,
+            description: definition.description || undefined,
+            fields: definition.fields as unknown as FormDefinition['fields'],
+            layout: definition.layout as unknown as FormDefinition['layout']
+          };
+
           // Generate form configuration from the definition
           console.log('Generating form configuration...');
-          const config = generateFormConfigFromDefinition(definition as FormDefinition);
+          const config = generateFormConfigFromDefinition(formDefinition);
           if (!config) {
             const errorMessage = 'Failed to generate form configuration';
             console.error(errorMessage);
@@ -89,7 +101,7 @@ export default function FormClient({ formName, formDescription }: FormClientProp
   const handleSubmit = async (data: any) => {
     try {
       const { error: insertError } = await supabase
-        .from(formName)
+        .from(formName as TableName)
         .insert(data);
 
       if (insertError) {
