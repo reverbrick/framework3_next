@@ -1,32 +1,26 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
-import { DataTable } from "@/components/data-table";
-import { DataTableLoading } from "@/components/data-table-loading";
+import { useEffect, useState } from "react";
 import { PageLayout } from "@/components/layout/page-layout";
 import { createClient } from "@/utils/supabase/client";
 import { handleSupabaseError } from "@/utils/supabase-error-handler";
-import { 
-  ServerSideTableState, 
-  getDefaultTableState, 
-  getSupabasePaginationParams,
-  validatePageSize,
-  calculatePageCount
-} from "@/utils/table/server-side-utils";
-import { generateColumnsFromConfig, TableConfig } from "@/utils/table-config-utils";
 import { generateAndSaveTableDefinition } from "@/utils/table/table-definition-utils";
 import { generateTableConfigFromDefinition } from "@/utils/table/supabase-to-table-config";
+import { DataTableWrapper } from '@/components/data-table-wrapper';
+import { DataTableLoading } from "@/components/data-table-loading";
+import { TableConfig } from "@/utils/table-config-utils";
 
 interface TableClientProps {
   tableName: string;
+  tableDescription: string;
 }
 
-export default function TableClient({ tableName }: TableClientProps) {
-  const [data, setData] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+export default function TableClient({ tableName, tableDescription }: TableClientProps) {
   const [tableConfig, setTableConfig] = useState<TableConfig | null>(null);
-  const [tableState, setTableState] = useState<ServerSideTableState>(getDefaultTableState());
-  const [pageCount, setPageCount] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [displayName, setDisplayName] = useState(tableName);
+  const [displayDescription, setDisplayDescription] = useState(tableDescription);
   const supabase = createClient();
 
   // Initialize table definition and configuration
@@ -43,143 +37,94 @@ export default function TableClient({ tableName }: TableClientProps) {
           return;
         }
 
+        // Get the table definition to get the display name and description
+        const { data: definition, error: definitionError } = await supabase
+          .from('table_definitions')
+          .select('name, description')
+          .eq('table_name', tableName)
+          .single();
+
+        if (definitionError) {
+          handleSupabaseError(definitionError, {
+            context: "fetching table definition",
+            fallbackMessage: "Failed to fetch table definition."
+          });
+          return;
+        }
+
+        if (definition) {
+          setDisplayName(definition.name || tableName);
+          setDisplayDescription(definition.description || tableDescription);
+        }
+
         // Generate table configuration from the definition
         const config = await generateTableConfigFromDefinition(tableName, {
-          description: `View and manage ${tableName}`,
+          description: tableDescription,
           includeSelect: true,
           includeActions: true,
         });
 
         if (!config) {
-          handleSupabaseError(new Error('Failed to generate table configuration'), {
-            context: "initializing table",
-            fallbackMessage: "Failed to generate table configuration."
-          });
-          return;
+          throw new Error('Failed to generate table configuration');
         }
 
         setTableConfig(config);
       } catch (error: any) {
-        handleSupabaseError(error, {
-          context: "initializing table",
-          fallbackMessage: "An unexpected error occurred while initializing the table."
-        });
-      }
-    };
-
-    initializeTable();
-  }, [tableName]);
-
-  const columns = useMemo(() => {
-    if (!tableConfig) return [];
-    return generateColumnsFromConfig<any>(tableConfig, (action: string, row: any) => {
-      console.log('Action:', action, 'Row:', row);
-    });
-  }, [tableConfig]);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        
-        // Get pagination parameters
-        const { from, to, orderBy } = getSupabasePaginationParams(
-          tableState.pageIndex,
-          tableState.pageSize,
-          tableState.sorting
-        );
-
-        // Get total count first
-        const { count, error: countError } = await supabase
-          .from(tableName)
-          .select('*', { count: 'exact', head: true });
-
-        if (countError) {
-          handleSupabaseError(countError, {
-            context: "counting records",
-            fallbackMessage: "Failed to count records."
-          });
-          return;
-        }
-
-        if (count !== null) {
-          setPageCount(calculatePageCount(count, tableState.pageSize));
-        }
-
-        // Build the query
-        let query = supabase
-          .from(tableName)
-          .select('*')
-          .range(from, to);
-
-        // Apply sorting if any
-        if (orderBy.length > 0) {
-          orderBy.forEach(sort => {
-            query = query.order(sort.column, { ascending: sort.ascending });
-          });
-        }
-
-        // Execute the query
-        const { data, error } = await query;
-        
-        if (error) {
-          handleSupabaseError(error, { 
-            context: "loading data",
-            fallbackMessage: "Failed to load data. Please try again later."
-          });
-          return;
-        }
-
-        setData(data || []);
-      } catch (error) {
-        handleSupabaseError(error as Error, { 
-          context: "loading data",
-          fallbackMessage: "An unexpected error occurred while loading data."
-        });
+        console.error('Error initializing table:', error);
+        setError(error.message || 'Failed to initialize table');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchData();
-  }, [supabase, tableState, tableName]);
+    initializeTable();
+  }, [tableName, tableDescription]);
 
-  const handlePaginationChange = (newPageIndex: number, newPageSize: number) => {
-    setTableState(prev => ({
-      ...prev,
-      pageIndex: newPageIndex,
-      pageSize: validatePageSize(newPageSize)
-    }));
-  };
+  if (loading) {
+    return (
+      <PageLayout title={displayName} description={displayDescription}>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-gray-500">Loading {displayName}...</div>
+        </div>
+      </PageLayout>
+    );
+  }
 
-  const handleSortingChange = (sorting: any) => {
-    setTableState(prev => ({
-      ...prev,
-      sorting,
-      pageIndex: 0 // Reset to first page when sorting changes
-    }));
-  };
+  if (error) {
+    return (
+      <PageLayout title={displayName} description={displayDescription}>
+        <div className="rounded-md bg-red-50 p-4">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-red-800">Error loading table</h3>
+              <div className="mt-2 text-sm text-red-700">
+                <p>{error}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </PageLayout>
+    );
+  }
+
+  if (!tableConfig) {
+    return (
+      <PageLayout title={displayName} description={displayDescription}>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-gray-500">No configuration available for {displayName}</div>
+        </div>
+      </PageLayout>
+    );
+  }
 
   return (
-    <PageLayout 
-      title={tableConfig?.name || tableName}
-      description={tableConfig?.description || `View and manage ${tableName}`}
-    >
-      {loading ? (
-        <DataTableLoading message={`Loading ${tableName}...`} />
-      ) : (
-        <div className="-mx-4 flex-1 overflow-auto px-4 py-1">
-          <DataTable 
-            data={data} 
-            columns={columns}
-            pageCount={pageCount}
-            pageIndex={tableState.pageIndex}
-            pageSize={tableState.pageSize}
-            onPaginationChange={handlePaginationChange}
-            onSortingChange={handleSortingChange}
-          />
-        </div>
-      )}
+    <PageLayout title={displayName} description={displayDescription}>
+      <DataTableWrapper config={tableConfig} tableName={tableName} />
     </PageLayout>
   );
 } 

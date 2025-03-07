@@ -15,6 +15,8 @@ export type TableDefinition = {
   table_name: string;
   schema_name: string;
   columns: SupabaseColumn[];
+  name?: string | null;
+  description?: string | null;
 };
 
 type TableName = keyof Database['public']['Tables'];
@@ -142,6 +144,10 @@ export async function generateAndSaveTableDefinition(tableName: string): Promise
           ] : []),
         ];
 
+    // Generate default name and description if not provided
+    const defaultName = tableName.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+    const defaultDescription = `View and manage ${tableName.replace(/_/g, ' ')}`;
+
     // Create or update the table definition
     const { error: upsertError } = await supabase
       .from('table_definitions')
@@ -149,6 +155,8 @@ export async function generateAndSaveTableDefinition(tableName: string): Promise
         table_name: tableName,
         schema_name: 'public',
         columns: columnDefinitions,
+        name: defaultName,
+        description: defaultDescription,
       }, {
         onConflict: 'table_name'
       });
@@ -185,6 +193,8 @@ export async function saveTableDefinition(definition: TableDefinition): Promise<
         table_name: definition.table_name,
         schema_name: definition.schema_name,
         columns: definition.columns,
+        name: definition.name,
+        description: definition.description,
       }, {
         onConflict: 'table_name'
       });

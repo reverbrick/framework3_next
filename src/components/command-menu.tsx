@@ -16,15 +16,24 @@ import {
   CommandList,
   CommandSeparator,
 } from '@/components/ui/command'
-import { sidebarData } from './layout/data/sidebar-data'
+import { getSidebarData } from './layout/data/sidebar-data'
 import { ScrollArea } from './ui/scroll-area'
 import { useRouter } from 'next/navigation'
+import { type SidebarData } from './layout/types'
 
 export function CommandMenu() {
   const router = useRouter()
-
   const { setTheme } = useTheme()
   const { open, setOpen } = useSearch()
+  const [sidebarData, setSidebarData] = React.useState<SidebarData | null>(null)
+
+  React.useEffect(() => {
+    const loadSidebarData = async () => {
+      const data = await getSidebarData()
+      setSidebarData(data)
+    }
+    loadSidebarData()
+  }, [])
 
   const runCommand = React.useCallback(
     (command: () => unknown) => {
@@ -33,6 +42,10 @@ export function CommandMenu() {
     },
     [setOpen]
   )
+
+  if (!sidebarData) {
+    return null
+  }
 
   return (
     <CommandDialog modal open={open} onOpenChange={setOpen}>

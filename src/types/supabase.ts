@@ -163,6 +163,8 @@ export type Database = {
           schema_name: string
           table_name: string
           updated_at: string
+          name: string | null
+          description: string | null
         }
         Insert: {
           columns?: Json | null
@@ -171,6 +173,8 @@ export type Database = {
           schema_name?: string
           table_name: string
           updated_at?: string
+          name?: string | null
+          description?: string | null
         }
         Update: {
           columns?: Json | null
@@ -179,6 +183,8 @@ export type Database = {
           schema_name?: string
           table_name?: string
           updated_at?: string
+          name?: string | null
+          description?: string | null
         }
         Relationships: []
       }

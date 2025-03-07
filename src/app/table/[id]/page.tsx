@@ -1,6 +1,6 @@
 import { createClient } from "@/utils/supabase/server";
 import { notFound } from "next/navigation";
-import TableClient from "./table-client";
+import TableClient from "@/app/table/[id]/table-client";
 import { generateAndSaveTableDefinition } from "@/utils/table/table-definition-utils";
 
 interface TablePageProps {
@@ -15,7 +15,7 @@ export default async function TablePage({ params }: TablePageProps) {
   // Check if the table exists in the database
   const { data: tableDefinition, error: tableError } = await supabase
     .from('table_definitions')
-    .select('table_name, columns')
+    .select('table_name, columns, name, description')
     .eq('table_name', params.id)
     .single();
 
@@ -27,7 +27,7 @@ export default async function TablePage({ params }: TablePageProps) {
   if (!tableDefinition) {
     try {
       await generateAndSaveTableDefinition(params.id);
-      return <TableClient tableName={params.id} />;
+      return <TableClient tableName={params.id} tableDescription={`View and manage ${params.id.replace(/_/g, ' ')}`} />;
     } catch (error: any) {
       notFound();
     }
@@ -39,5 +39,8 @@ export default async function TablePage({ params }: TablePageProps) {
   }
 
   // If we get here, the table exists and has valid columns
-  return <TableClient tableName={params.id} />;
+  return <TableClient 
+    tableName={params.id}
+    tableDescription={tableDefinition.description || `View and manage ${params.id.replace(/_/g, ' ')}`}
+  />;
 } 
