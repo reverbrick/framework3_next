@@ -32,34 +32,25 @@ export function ClientLayout({ children }: ClientLayoutProps) {
         if (error) {
           console.error('Error getting session:', error);
           if (!isPublicRoute(pathname)) {
-            router.push('/auth/sign-in');
+            router.replace('/auth/sign-in');
           }
           return;
         }
 
         if (mounted) {
           setSession(session);
-        }
-        
-        // Debug logging
-        console.log('Initial auth check:', {
-          pathname,
-          isPublicRoute: isPublicRoute(pathname),
-          hasSession: !!session,
-          shouldRedirect: !session && !isPublicRoute(pathname)
-        });
-        
-        // Only redirect if we're not on a public route and there's no session
-        if (!session && !isPublicRoute(pathname)) {
-          console.log('Initial check - redirecting to sign-in...');
-          router.push('/auth/sign-in');
+          
+          // Handle redirects based on session state
+          if (session && shouldRedirectWhenLoggedIn(pathname)) {
+            router.replace('/dashboard');
+          } else if (!session && !isPublicRoute(pathname)) {
+            router.replace('/auth/sign-in');
+          }
         }
       } catch (error) {
         console.error('Error getting session:', error);
-        // Only redirect to sign-in if not on a public route
         if (!isPublicRoute(pathname)) {
-          console.log('Error case - redirecting to sign-in...');
-          router.push('/auth/sign-in');
+          router.replace('/auth/sign-in');
         }
       } finally {
         if (mounted) {
@@ -70,31 +61,18 @@ export function ClientLayout({ children }: ClientLayoutProps) {
     getUser();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth state changed:', { event, session });
-      
       if (mounted) {
         setSession(session);
-      }
-      
-      // Debug logging
-      console.log('Auth state changed:', {
-        event,
-        pathname,
-        isPublicRoute: isPublicRoute(pathname),
-        hasSession: !!session,
-        shouldRedirect: !session && !isPublicRoute(pathname)
-      });
-      
-      // Handle specific auth events
-      if (event === 'SIGNED_OUT') {
-        if (!isPublicRoute(pathname)) {
-          console.log('Sign out event - redirecting to sign-in...');
-          router.push('/auth/sign-in');
-        }
-      } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-        if (shouldRedirectWhenLoggedIn(pathname)) {
-          console.log('Sign in event - redirecting to dashboard...');
-          router.push('/dashboard');
+        
+        // Handle auth state changes
+        if (event === 'SIGNED_OUT') {
+          if (!isPublicRoute(pathname)) {
+            router.replace('/auth/sign-in');
+          }
+        } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+          if (shouldRedirectWhenLoggedIn(pathname)) {
+            router.replace('/dashboard');
+          }
         }
       }
     });
@@ -105,8 +83,18 @@ export function ClientLayout({ children }: ClientLayoutProps) {
     };
   }, [supabase.auth, router, pathname]);
 
-  if (isLoading) {
-    return null; // Or a loading spinner
+  // Show loading state only for protected routes
+  if (isLoading && !isPublicRoute(pathname)) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  // Don't render layout for auth pages
+  if (pathname?.startsWith('/auth')) {
+    return children;
   }
 
   return (
