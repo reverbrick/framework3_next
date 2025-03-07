@@ -3,11 +3,12 @@ import { notFound } from "next/navigation";
 import TableClient from "@/app/table/[id]/table-client";
 import { generateAndSaveTableDefinition } from "@/utils/table/table-definition-utils";
 
-export default async function TablePage({
-  params,
-}: {
-  params: { id: string }
-}) {
+type Props = {
+  params: { id: string };
+  searchParams: { [key: string]: string | string[] | undefined };
+};
+
+export default async function TablePage({ params }: Props) {
   const supabase = createClient();
 
   // Check if the table exists in the database
