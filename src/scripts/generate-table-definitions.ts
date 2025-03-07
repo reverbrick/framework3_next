@@ -1,37 +1,41 @@
-import { Database } from '../types/supabase';
 import { createClient } from '../utils/supabase/client';
-
-type TableName = keyof Database['public']['Tables'];
 
 async function generateTableDefinitions() {
   const supabase = createClient();
-  const tables = Object.keys(Database['public']['Tables']) as TableName[];
+  
+  // Get all tables from the database
+  const { data: tables, error: tablesError } = await supabase
+    .from('information_schema.tables')
+    .select('table_name')
+    .eq('table_schema', 'public')
+    .eq('table_type', 'BASE TABLE');
 
-  for (const tableName of tables) {
-    const tableType = Database['public']['Tables'][tableName];
-    if (!tableType || !('Row' in tableType)) {
-      console.error(`Table ${tableName} has no row type defined`);
+  if (tablesError) {
+    console.error('Error fetching tables:', tablesError);
+    return;
+  }
+
+  for (const table of tables) {
+    const tableName = table.table_name;
+
+    // Get column information for the table
+    const { data: columns, error: columnsError } = await supabase
+      .from('information_schema.columns')
+      .select('column_name, data_type, is_nullable')
+      .eq('table_schema', 'public')
+      .eq('table_name', tableName);
+
+    if (columnsError) {
+      console.error(`Error fetching columns for ${tableName}:`, columnsError);
       continue;
     }
 
-    const rowType = tableType['Row'];
-    if (!rowType) {
-      console.error(`Table ${tableName} has no row type defined`);
-      continue;
-    }
-
-    // Convert the row type to columns
-    const columns = Object.entries(rowType).map(([name, type]) => {
-      const typeString = String(type);
-      const isNullable = typeString.includes('null');
-      const baseType = typeString.replace(' | null', '').replace(' | undefined', '');
-      
-      return {
-        name,
-        type: baseType.toLowerCase(),
-        is_nullable: isNullable,
-      };
-    });
+    // Convert the column information to our format
+    const tableColumns = columns.map(col => ({
+      name: col.column_name,
+      type: col.data_type.toLowerCase(),
+      is_nullable: col.is_nullable === 'YES',
+    }));
 
     // Save the table definition
     const { error } = await supabase
@@ -39,7 +43,7 @@ async function generateTableDefinitions() {
       .upsert({
         table_name: tableName,
         schema_name: 'public',
-        columns,
+        columns: tableColumns,
       }, {
         onConflict: 'table_name'
       });
