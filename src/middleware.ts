@@ -1,62 +1,43 @@
-import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs'
-import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
+import { createServerClient, type CookieOptions } from '@supabase/ssr'
+import { NextResponse, type NextRequest } from 'next/server'
 import { isPublicRoute, shouldRedirectWhenLoggedIn } from '@/config/routes'
 
 export async function middleware(request: NextRequest) {
-  try {
-    const pathname = request.nextUrl.pathname;
-    
-    // Debug logging
-    console.log('Middleware check:', {
-      pathname,
-      isPublicRoute: isPublicRoute(pathname),
-      shouldRedirectWhenLoggedIn: shouldRedirectWhenLoggedIn(pathname)
-    });
+  let response = NextResponse.next({
+    request: {
+      headers: request.headers,
+    },
+  })
 
-    // Skip auth check for public routes
-    if (isPublicRoute(pathname)) {
-      console.log('Middleware: Allowing access to public route');
-      return NextResponse.next();
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return request.cookies.get(name)?.value
+        },
+        set(name: string, value: string, options: CookieOptions) {
+          response.cookies.set({
+            name,
+            value,
+            ...options,
+          })
+        },
+        remove(name: string, options: CookieOptions) {
+          response.cookies.set({
+            name,
+            value: '',
+            ...options,
+          })
+        },
+      },
     }
+  )
 
-    const res = NextResponse.next();
-    const supabase = createMiddlewareClient({ req: request, res });
+  await supabase.auth.getSession()
 
-    // Refresh session if expired
-    const { data: { session } } = await supabase.auth.getSession();
-    
-    // Debug logging
-    console.log('Middleware session check:', {
-      pathname,
-      hasSession: !!session,
-      isPublicRoute: isPublicRoute(pathname),
-      shouldRedirectWhenLoggedIn: shouldRedirectWhenLoggedIn(pathname)
-    });
-
-    // If there's no session and the user is trying to access a protected route
-    if (!session) {
-      console.log('Middleware: No session, redirecting to sign-in');
-      const redirectUrl = new URL('/auth/sign-in', request.url);
-      redirectUrl.searchParams.set('redirectedFrom', pathname);
-      return NextResponse.redirect(redirectUrl);
-    }
-
-    // If there's a session and the user is trying to access specific auth routes
-    if (session && shouldRedirectWhenLoggedIn(pathname)) {
-      console.log('Middleware: Has session, redirecting to dashboard');
-      return NextResponse.redirect(new URL('/dashboard', request.url));
-    }
-
-    console.log('Middleware: Allowing access');
-    return res;
-  } catch (error) {
-    console.error('Middleware error:', error);
-    // If there's an error with the session, redirect to sign in
-    const redirectUrl = new URL('/auth/sign-in', request.url);
-    redirectUrl.searchParams.set('redirectedFrom', request.nextUrl.pathname);
-    return NextResponse.redirect(redirectUrl);
-  }
+  return response
 }
 
 export const config = {
@@ -66,8 +47,8 @@ export const config = {
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
-     * - public folder
+     * Feel free to modify this pattern to include more paths.
      */
-    '/((?!_next/static|_next/image|favicon.ico|public).*)',
+    '/((?!_next/static|_next/image|favicon.ico).*)',
   ],
 } 

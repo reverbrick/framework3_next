@@ -62,6 +62,39 @@ export type Database = {
         }
         Relationships: []
       }
+      form_definitions: {
+        Row: {
+          created_at: string
+          description: string | null
+          fields: Json
+          form_name: string
+          id: string
+          layout: Json | null
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          fields: Json
+          form_name: string
+          id?: string
+          layout?: Json | null
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          fields?: Json
+          form_name?: string
+          id?: string
+          layout?: Json | null
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       notes: {
         Row: {
           id: number
@@ -159,32 +192,32 @@ export type Database = {
         Row: {
           columns: Json | null
           created_at: string
+          description: string | null
           id: string
+          name: string | null
           schema_name: string
           table_name: string
           updated_at: string
-          name: string | null
-          description: string | null
         }
         Insert: {
           columns?: Json | null
           created_at?: string
+          description?: string | null
           id?: string
+          name?: string | null
           schema_name?: string
           table_name: string
           updated_at?: string
-          name?: string | null
-          description?: string | null
         }
         Update: {
           columns?: Json | null
           created_at?: string
+          description?: string | null
           id?: string
+          name?: string | null
           schema_name?: string
           table_name?: string
           updated_at?: string
-          name?: string | null
-          description?: string | null
         }
         Relationships: []
       }

@@ -49,8 +49,31 @@ async function getTableDefinitions() {
   );
 }
 
+async function getFormDefinitions() {
+  const supabase = createClient();
+  const { data: forms, error } = await supabase
+    .from('form_definitions')
+    .select('form_name, name, fields')
+    .not('fields', 'is', null)
+    .not('fields', 'eq', '[]')
+    .not('fields', 'eq', 'null');
+
+  if (error) {
+    console.error('Error fetching form definitions:', error);
+    return [];
+  }
+
+  // Additional filter to ensure we only have valid field arrays
+  return (forms || []).filter(form => 
+    Array.isArray(form.fields) && 
+    form.fields.length > 0 && 
+    form.fields !== null
+  );
+}
+
 export async function getSidebarData(): Promise<SidebarData> {
   const tables = await getTableDefinitions();
+  const forms = await getFormDefinitions();
   
   return {
     user: {
@@ -105,11 +128,6 @@ export async function getSidebarData(): Promise<SidebarData> {
             url: "/users",
             icon: IconUsers,
           },
-          {
-            title: "Form",
-            url: "/form",
-            icon: IconForms,
-          },
         ],
       },
       {
@@ -118,6 +136,14 @@ export async function getSidebarData(): Promise<SidebarData> {
           title: table.table_name,
           url: `/table/${table.table_name}`,
           icon: IconTable,
+        })),
+      },
+      {
+        title: "Forms",
+        items: forms.map(form => ({
+          title: form.name,
+          url: `/form/${form.form_name}`,
+          icon: IconForms,
         })),
       },
       {
