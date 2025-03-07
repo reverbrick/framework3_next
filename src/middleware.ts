@@ -22,6 +22,9 @@ export async function middleware(request: NextRequest) {
             name,
             value,
             ...options,
+            sameSite: 'lax',
+            secure: process.env.NODE_ENV === 'production',
+            path: '/',
           })
         },
         remove(name: string, options: CookieOptions) {
@@ -29,13 +32,29 @@ export async function middleware(request: NextRequest) {
             name,
             value: '',
             ...options,
+            sameSite: 'lax',
+            secure: process.env.NODE_ENV === 'production',
+            path: '/',
+            maxAge: 0,
           })
         },
       },
     }
   )
 
-  await supabase.auth.getSession()
+  const { data: { session } } = await supabase.auth.getSession()
+
+  // If there's no session and the user is trying to access a protected route
+  if (!session && !isPublicRoute(request.nextUrl.pathname)) {
+    const redirectUrl = new URL('/auth/sign-in', request.url)
+    redirectUrl.searchParams.set('redirectedFrom', request.nextUrl.pathname)
+    return NextResponse.redirect(redirectUrl)
+  }
+
+  // If there's a session and the user is trying to access auth routes
+  if (session && shouldRedirectWhenLoggedIn(request.nextUrl.pathname)) {
+    return NextResponse.redirect(new URL('/dashboard', request.url))
+  }
 
   return response
 }

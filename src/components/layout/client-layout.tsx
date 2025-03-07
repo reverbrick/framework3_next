@@ -9,7 +9,7 @@ import { Header } from "@/components/layout/header";
 import { Search } from "@/components/search";
 import { ThemeSwitch } from "@/components/theme-switch";
 import { ProfileDropdown } from "@/components/profile-dropdown";
-import { isPublicRoute } from "@/config/routes";
+import { isPublicRoute, shouldRedirectWhenLoggedIn } from "@/config/routes";
 
 interface ClientLayoutProps {
   children: React.ReactNode;
@@ -27,7 +27,16 @@ export function ClientLayout({ children }: ClientLayoutProps) {
 
     const getUser = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('Error getting session:', error);
+          if (!isPublicRoute(pathname)) {
+            router.push('/auth/sign-in');
+          }
+          return;
+        }
+
         if (mounted) {
           setSession(session);
         }
@@ -60,24 +69,33 @@ export function ClientLayout({ children }: ClientLayoutProps) {
     };
     getUser();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth state changed:', { event, session });
+      
       if (mounted) {
         setSession(session);
       }
       
       // Debug logging
       console.log('Auth state changed:', {
-        event: _event,
+        event,
         pathname,
         isPublicRoute: isPublicRoute(pathname),
         hasSession: !!session,
         shouldRedirect: !session && !isPublicRoute(pathname)
       });
       
-      // Only redirect if we're not on a public route and there's no session
-      if (!session && !isPublicRoute(pathname)) {
-        console.log('Auth state change - redirecting to sign-in...');
-        router.push('/auth/sign-in');
+      // Handle specific auth events
+      if (event === 'SIGNED_OUT') {
+        if (!isPublicRoute(pathname)) {
+          console.log('Sign out event - redirecting to sign-in...');
+          router.push('/auth/sign-in');
+        }
+      } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        if (shouldRedirectWhenLoggedIn(pathname)) {
+          console.log('Sign in event - redirecting to dashboard...');
+          router.push('/dashboard');
+        }
       }
     });
 
