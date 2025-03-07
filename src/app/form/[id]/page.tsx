@@ -4,17 +4,16 @@ import FormClient from "@/app/form/[id]/form-client";
 import { generateAndSaveFormDefinition } from "@/utils/form/form-definition-utils";
 import { Metadata } from "next";
 
-interface PageProps {
-  params: { id: string };
-  searchParams: { [key: string]: string | string[] | undefined };
-}
-
 export const metadata: Metadata = {
   title: 'Dynamic Form',
   description: 'A dynamic form generated from database definition',
 };
 
-export default async function FormPage({ params }: PageProps) {
+export default async function FormPage({
+  params,
+}: {
+  params: { id: string }
+}) {
   const supabase = createServerSupabaseClient();
 
   // Check if the form exists in the database
