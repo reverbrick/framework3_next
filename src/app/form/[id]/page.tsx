@@ -3,13 +3,14 @@ import { notFound } from "next/navigation";
 import FormClient from "@/app/form/[id]/form-client";
 import { generateAndSaveFormDefinition } from "@/utils/form/form-definition-utils";
 
-interface FormPageProps {
+type Props = {
   params: {
     id: string;
   };
-}
+  searchParams: { [key: string]: string | string[] | undefined };
+};
 
-export default async function FormPage({ params }: FormPageProps) {
+export default async function FormPage({ params }: Props) {
   const supabase = createServerSupabaseClient();
 
   // Check if the form exists in the database
