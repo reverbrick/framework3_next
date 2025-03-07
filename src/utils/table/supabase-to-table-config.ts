@@ -1,77 +1,51 @@
-import { generateTableConfig } from './generate-table-config'
-import { handleSupabaseError } from "@/utils/supabase-error-handler";
+import { TableConfig, TableColumn } from "../table-config-utils";
+import { SupabaseColumn } from "@/types/table";
 import { createClient } from "@/utils/supabase/client";
-import { TableDefinition, SupabaseColumn } from './table-definition-utils';
-import { Database } from "@/types/supabase";
-import { TableColumn } from '@/utils/table-config-utils';
+import { handleSupabaseError } from "@/utils/supabase-error-handler";
 
-type SupabaseType = keyof Database['public']['Tables'][keyof Database['public']['Tables']]['Row'][keyof Database['public']['Tables'][keyof Database['public']['Tables']]['Row']]
-
-const mapSupabaseType = (type: string): string => {
-  switch (type.toLowerCase()) {
-    case 'string':
-      return 'text'
-    case 'number':
-      return 'number'
-    case 'boolean':
-      return 'boolean'
-    case 'date':
-      return 'date'
-    case 'json':
-      return 'json'
-    case 'enum':
-      return 'badge'
-    default:
-      return 'text'
-  }
-}
-
-const convertSupabaseColumn = (column: SupabaseColumn) => {
-  const result = {
-    name: column.name,
-    type: mapSupabaseType(column.type),
-    isNullable: column.is_nullable,
-  } as const
-
-  if (column.enums) {
+export function convertSupabaseToTableConfig(
+  tableName: string,
+  data: SupabaseColumn[],
+  name: string,
+  description: string
+): TableConfig {
+  const columns: TableColumn[] = data.map((col: SupabaseColumn) => {
+    const type = mapSupabaseTypeToTableType(col.type);
     return {
-      ...result,
-      type: 'badge',
-      enum: column.enums.reduce((acc, value) => {
-        acc[value] = value.charAt(0).toUpperCase() + value.slice(1)
-        return acc
-      }, {} as Record<string, string>),
-    }
-  }
+      id: col.name,
+      name: col.name,
+      type,
+      isNullable: col.is_nullable,
+      defaultValue: col.default_value,
+      comment: col.comment
+    };
+  });
 
-  if (column.references) {
-    return {
-      ...result,
-      type: 'text',
-      references: column.references,
-    }
-  }
-
-  return result
+  return {
+    name,
+    description,
+    columns,
+    filters: [] // Default empty filters array
+  };
 }
 
 export async function generateTableConfigFromDefinition(
   tableName: string,
   options: {
-    description: string
-    excludeColumns?: string[]
-    includeSelect?: boolean
-    includeActions?: boolean
-    customColumns?: TableColumn[]
+    description: string;
+    excludeColumns?: string[];
+    includeSelect?: boolean;
+    includeActions?: boolean;
+    customColumns?: TableColumn[];
     customFilters?: Array<{
-      column: string
-      type: 'text' | 'faceted'
-      placeholder?: string
-      options?: Array<{ label: string; value: string }>
-      useOptionsFromColumn?: boolean
-    }>
+      column: string;
+      type: 'text' | 'faceted';
+      placeholder?: string;
+      options?: Array<{ label: string; value: string }>;
+      useOptionsFromColumn?: boolean;
+    }>;
   }
-) {
+): Promise<TableConfig | null> {
   try {
     const supabase = createClient();
     
@@ -91,11 +65,15 @@ export async function generateTableConfigFromDefinition(
     }
 
     // Handle case where columns is null
-    const columns = definition.columns || [];
-    const convertedColumns = columns.map(convertSupabaseColumn).filter((col: { name: string; type: string }) => {
-      // Filter out any columns that don't have a name or type
-      return col.name && col.type;
-    });
+    const columns = definition.columns as SupabaseColumn[] || [];
+    const convertedColumns = columns.map(col => ({
+      id: col.name,
+      name: col.name,
+      type: mapSupabaseTypeToTableType(col.type),
+      isNullable: col.is_nullable,
+      defaultValue: col.default_value,
+      comment: col.comment
+    })).filter(col => col.name && col.type);
 
     // If no columns were converted, return null
     if (convertedColumns.length === 0) {
@@ -103,7 +81,12 @@ export async function generateTableConfigFromDefinition(
       return null;
     }
 
-    return generateTableConfig(tableName, options.description, convertedColumns, options);
+    return {
+      name: tableName,
+      description: options.description,
+      columns: convertedColumns,
+      filters: [],
+    };
   } catch (error: any) {
     handleSupabaseError(error, { 
       context: `Supabase table configuration generation for ${tableName}`,
@@ -113,53 +96,32 @@ export async function generateTableConfigFromDefinition(
   }
 }
 
-// Example usage with Supabase CLI generated types:
-/*
-import { Database } from '@/types/supabase'
-
-type Tables = Database['public']['Tables']
-type UserTable = Tables['users']['Row']
-
-// Convert Supabase table definition to our format
-const usersTable: SupabaseTable = {
-  name: 'Users',
-  schema: 'public',
-  columns: [
-    {
-      name: 'id',
-      type: 'text',
-      is_nullable: false,
-    },
-    {
-      name: 'username',
-      type: 'text',
-      is_nullable: false,
-    },
-    {
-      name: 'status',
-      type: 'enum',
-      is_nullable: false,
-      enums: ['active', 'inactive', 'invited', 'suspended'],
-    },
-    // ... other columns
-  ],
-}
-
-// Generate table config
-const tableConfig = generateTableConfigFromSupabase(usersTable, {
-  description: 'Manage your users and their roles here.',
-  excludeColumns: ['created_at', 'updated_at'],
-  customColumns: [
-    {
-      id: 'fullName',
-      type: 'computed',
-      title: 'Name',
-      maxWidth: 36,
-      compute: {
-        fields: ['first_name', 'last_name'],
-        format: '${first_name} ${last_name}',
-      },
-    },
-  ],
-})
-*/ 
+function mapSupabaseTypeToTableType(supabaseType: string): TableColumn["type"] {
+  switch (supabaseType.toLowerCase()) {
+    case "integer":
+    case "bigint":
+    case "smallint":
+    case "numeric":
+    case "decimal":
+    case "real":
+    case "double precision":
+      return "number";
+    case "boolean":
+      return "boolean";
+    case "character varying":
+    case "varchar":
+    case "text":
+    case "char":
+      return "text";
+    case "date":
+    case "timestamp":
+    case "timestamp with time zone":
+    case "timestamp without time zone":
+      return "date";
+    case "json":
+    case "jsonb":
+      return "json";
+    default:
+      return "text"; // Default to text for unknown types
+  }
+} 

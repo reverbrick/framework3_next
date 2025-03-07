@@ -1,6 +1,7 @@
 import { IconShield, IconUserShield, IconUsersGroup, IconCash } from '@tabler/icons-react'
 import { handleSupabaseError } from "@/utils/supabase-error-handler";
 import { TableConfig, TableColumn } from "@/utils/table-config-utils";
+import { ColumnConfig } from './generate-columns';
 
 type ColumnType = {
   name: string;
@@ -29,15 +30,15 @@ const SPECIAL_COLUMNS: Record<string, Partial<TableColumn>> = {
   },
 };
 
-const TYPE_MAPPINGS: Record<string, { type: TableColumn['type']; config?: Partial<TableColumn> }> = {
+const TYPE_MAPPINGS: Record<string, { type: TableColumn['type'] }> = {
   text: { type: 'text' },
   varchar: { type: 'text' },
-  int8: { type: 'text' },
-  int4: { type: 'text' },
-  bool: { type: 'text' },
-  timestamp: { type: 'text' },
-  date: { type: 'text' },
-  jsonb: { type: 'text' },
+  int8: { type: 'number' },
+  int4: { type: 'number' },
+  bool: { type: 'boolean' },
+  timestamp: { type: 'date' },
+  date: { type: 'date' },
+  jsonb: { type: 'json' },
   enum: { type: 'badge' },
 };
 
@@ -47,8 +48,10 @@ const generateColumnConfig = (column: ColumnType): TableColumn => {
   if (specialConfig) {
     return {
       id: column.name,
-      title: column.name.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '),
       type: 'text',
+      title: column.name.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '),
+      enableSorting: true,
+      enableHiding: true,
       ...specialConfig,
     };
   }
@@ -56,33 +59,13 @@ const generateColumnConfig = (column: ColumnType): TableColumn => {
   // Get base configuration from type mapping
   const baseConfig = TYPE_MAPPINGS[column.type] || { type: 'text' };
 
-  const config: TableColumn = {
+  return {
     id: column.name,
-    title: column.name.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '),
     type: baseConfig.type,
+    title: column.name.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '),
     enableSorting: true,
     enableHiding: true,
-    ...baseConfig.config,
   };
-
-  // Handle enum types
-  if (column.type === 'enum' && column.enum) {
-    config.options = Object.entries(column.enum).reduce((acc, [key, value]) => {
-      acc[key] = {
-        label: String(value),
-        value: key,
-      };
-      return acc;
-    }, {} as Record<string, any>);
-  }
-
-  // Handle foreign key references
-  if (column.references) {
-    config.type = 'text';
-    config.enableSorting = false;
-  }
-
-  return config;
 };
 
 const generateFilterConfig = (column: ColumnType) => {
@@ -95,6 +78,7 @@ const generateFilterConfig = (column: ColumnType) => {
     return {
       column: column.name,
       type: 'faceted' as const,
+      options: column.enum ? Object.entries(column.enum).map(([value, label]) => ({ label, value })) : undefined,
       useOptionsFromColumn: true,
     };
   }
@@ -110,7 +94,7 @@ const generateFilterConfig = (column: ColumnType) => {
   return null;
 };
 
-export const generateTableConfig = (
+export function generateTableConfig(
   tableName: string,
   description: string,
   columns: ColumnType[],
@@ -127,7 +111,7 @@ export const generateTableConfig = (
       useOptionsFromColumn?: boolean;
     }>;
   }
-): TableConfig => {
+): TableConfig {
   try {
     const {
       excludeColumns = [],
@@ -172,6 +156,8 @@ export const generateTableConfig = (
       tableColumns.push({
         id: 'actions',
         type: 'actions',
+        enableSorting: false,
+        enableHiding: false,
       });
     }
 
@@ -196,4 +182,4 @@ export const generateTableConfig = (
       filters: [],
     };
   }
-}; 
+} 
