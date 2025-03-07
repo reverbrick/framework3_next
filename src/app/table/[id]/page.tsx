@@ -34,7 +34,7 @@ export default async function TablePage({
   }
 
   // If table exists but has null columns or empty columns array, return 404
-  if (!tableDefinition.columns || tableDefinition.columns === null || tableDefinition.columns.length === 0) {
+  if (!tableDefinition.columns || !Array.isArray(tableDefinition.columns) || tableDefinition.columns.length === 0) {
     notFound();
   }
 
