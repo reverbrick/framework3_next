@@ -1,6 +1,6 @@
 'use client';
 
-import { TableConfig } from '@/utils/table-config-utils';
+import { TableConfig, generateColumnsFromConfig } from '@/utils/table-config-utils';
 import { DataTable } from '@/components/data-table';
 import { DataTableLoading } from '@/components/data-table-loading';
 import { DataTableColumnHeader } from '@/components/data-table-column-header';
@@ -8,7 +8,6 @@ import { useState, useMemo, useEffect } from 'react';
 import { ServerSideTableState, getDefaultTableState } from '../utils/table-state';
 import { createClient } from '@/utils/supabase/client';
 import { handleSupabaseError } from "@/utils/supabase-error-handler";
-import { generateColumnsFromConfig } from '@/utils/table-config-utils';
 import { Database } from "@/types/supabase";
 
 type TableName = keyof Database['public']['Tables'];
