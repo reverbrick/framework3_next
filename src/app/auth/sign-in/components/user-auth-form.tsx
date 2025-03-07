@@ -69,9 +69,6 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
         return
       }
 
-      // Wait for a short moment to ensure the session is properly set
-      await new Promise(resolve => setTimeout(resolve, 100))
-      
       // Use replace instead of push to avoid adding to history
       router.replace('/dashboard')
     } catch (error) {
