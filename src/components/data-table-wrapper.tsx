@@ -1,6 +1,6 @@
 'use client';
 
-import { TableConfig, generateColumnsFromConfig } from '@/utils/table-config-utils';
+import { TableConfig, generateColumnsFromConfig } from '../utils/table-config-utils';
 import { DataTable } from '@/components/data-table';
 import { DataTableLoading } from '@/components/data-table-loading';
 import { DataTableColumnHeader } from '@/components/data-table-column-header';
