@@ -39,6 +39,9 @@ interface ColumnDefinition {
   max_length?: number;
 }
 
+// Type for Supabase JSON data
+type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
+
 const SYSTEM_TABLES = ['table_definitions', 'form_definitions'] as const;
 
 async function checkTableExists(supabase: SupabaseClient, tableName: string): Promise<boolean> {
@@ -93,7 +96,7 @@ async function checkTableDefinition(supabase: SupabaseClient, tableName: string)
           table_name: tableName,
           name: formatTableName(tableName),
           description: `Table for ${formatTableName(tableName)}`,
-          columns: []
+          columns: [] as unknown as Json
         })
         .select()
         .single();
@@ -117,7 +120,7 @@ async function checkTableDefinition(supabase: SupabaseClient, tableName: string)
 
       const { error: updateError } = await supabase
         .from('table_definitions')
-        .update({ columns: columnDefinitions })
+        .update({ columns: columnDefinitions as unknown as Json })
         .eq('table_name', tableName);
 
       if (updateError) {
@@ -254,12 +257,15 @@ export async function generateAndSaveFormDefinition(formName: string): Promise<b
       throw new Error('No columns found in table definition');
     }
 
-    const fields = generateFormFields(tableDefinition.columns);
+    const fields = generateFormFields(tableDefinition.columns as unknown as ColumnDefinition[]);
     const formDefinition = createFormDefinition(formName, fields);
 
     const { error: insertError } = await supabase
       .from('form_definitions')
-      .insert(formDefinition);
+      .insert({
+        ...formDefinition,
+        fields: formDefinition.fields as unknown as Json
+      });
 
     if (insertError) {
       handleSupabaseError(insertError, {
