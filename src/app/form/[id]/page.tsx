@@ -9,12 +9,13 @@ export const metadata: Metadata = {
   description: 'A dynamic form generated from database definition',
 };
 
-type Props = {
-  params: { id: string };
-  searchParams: { [key: string]: string | string[] | undefined };
-};
-
-export default async function FormPage({ params }: Props) {
+export default async function FormPage({
+  params,
+}: {
+  params: { id: string }
+} & {
+  params: Promise<{ id: string }>;
+}) {
   const supabase = createServerSupabaseClient();
 
   // Check if the form exists in the database
