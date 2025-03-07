@@ -1,60 +1,54 @@
-import { createClient } from '../utils/supabase/client';
+import { createClient } from '@/utils/supabase/client';
+import { Database } from '@/types/supabase';
+import { generateAndSaveTableDefinition } from '@/utils/table/table-definition-utils';
+
+type TableName = keyof Database['public']['Tables'];
+
+interface TableInfo {
+  table_name: string;
+}
 
 async function generateTableDefinitions() {
   const supabase = createClient();
   
-  // Get all tables from the database
-  const { data: tables, error: tablesError } = await supabase
-    .from('information_schema.tables')
-    .select('table_name')
-    .eq('table_schema', 'public')
-    .eq('table_type', 'BASE TABLE');
-
-  if (tablesError) {
-    console.error('Error fetching tables:', tablesError);
-    return;
-  }
-
-  for (const table of tables) {
-    const tableName = table.table_name;
-
-    // Get column information for the table
-    const { data: columns, error: columnsError } = await supabase
-      .from('information_schema.columns')
-      .select('column_name, data_type, is_nullable')
-      .eq('table_schema', 'public')
-      .eq('table_name', tableName);
-
-    if (columnsError) {
-      console.error(`Error fetching columns for ${tableName}:`, columnsError);
-      continue;
-    }
-
-    // Convert the column information to our format
-    const tableColumns = columns.map(col => ({
-      name: col.column_name,
-      type: col.data_type.toLowerCase(),
-      is_nullable: col.is_nullable === 'YES',
-    }));
-
-    // Save the table definition
-    const { error } = await supabase
+  try {
+    // Get all tables from the database using direct SQL
+    const { data: tables, error: tablesError } = await supabase
       .from('table_definitions')
-      .upsert({
-        table_name: tableName,
-        schema_name: 'public',
-        columns: tableColumns,
-      }, {
-        onConflict: 'table_name'
-      });
+      .select('table_name');
 
-    if (error) {
-      console.error(`Error saving table definition for ${tableName}:`, error);
-    } else {
-      console.log(`Successfully saved table definition for ${tableName}`);
+    if (tablesError) {
+      console.error('Error fetching tables:', tablesError);
+      return;
     }
+
+    if (!tables) {
+      console.log('No tables found');
+      return;
+    }
+
+    // Generate definitions for each table
+    for (const table of tables as TableInfo[]) {
+      const tableName = table.table_name;
+      console.log(`Generating definition for table: ${tableName}`);
+      
+      try {
+        const success = await generateAndSaveTableDefinition(tableName);
+        if (success) {
+          console.log(`Successfully generated definition for table: ${tableName}`);
+        } else {
+          console.error(`Failed to generate definition for table: ${tableName}`);
+        }
+      } catch (error) {
+        console.error(`Error generating definition for table ${tableName}:`, error);
+      }
+    }
+
+    console.log('Finished generating table definitions');
+  } catch (error) {
+    console.error('Error in generateTableDefinitions:', error);
   }
 }
 
 // Run the script
-generateTableDefinitions().catch(console.error); 
+generateTableDefinitions(); 
