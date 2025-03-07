@@ -3,7 +3,7 @@
 import { Button } from '@/components/ui/button'
 import { useRouter } from 'next/navigation'
 
-export default function NotFoundError() {
+export default function NotFound() {
   const router = useRouter()
 
   return (
@@ -24,4 +24,4 @@ export default function NotFoundError() {
       </div>
     </div>
   )
-}
+} 

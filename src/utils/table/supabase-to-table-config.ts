@@ -1,41 +1,26 @@
 import { generateTableConfig } from './generate-table-config'
 import { handleSupabaseError } from "@/utils/supabase-error-handler";
+import { createClient } from "@/utils/supabase/client";
+import { TableDefinition, SupabaseColumn } from './table-definition-utils';
+import { Database } from "@/types/supabase";
+import { TableColumn } from '@/utils/table-config-utils';
 
-type SupabaseType = 'text' | 'varchar' | 'int8' | 'int4' | 'bool' | 'timestamp' | 'date' | 'jsonb' | 'enum'
+type SupabaseType = keyof Database['public']['Tables'][keyof Database['public']['Tables']]['Row'][keyof Database['public']['Tables'][keyof Database['public']['Tables']]['Row']]
 
-type SupabaseColumn = {
-  name: string
-  type: SupabaseType
-  is_nullable: boolean
-  format?: string
-  enums?: string[]
-  references?: string
-}
-
-type SupabaseTable = {
-  name: string
-  schema: string
-  columns: SupabaseColumn[]
-}
-
-const mapSupabaseType = (type: SupabaseType): string => {
-  switch (type) {
-    case 'text':
-    case 'varchar':
+const mapSupabaseType = (type: string): string => {
+  switch (type.toLowerCase()) {
+    case 'string':
       return 'text'
-    case 'int8':
-    case 'int4':
+    case 'number':
       return 'number'
-    case 'bool':
+    case 'boolean':
       return 'boolean'
-    case 'timestamp':
-      return 'datetime'
     case 'date':
       return 'date'
-    case 'jsonb':
+    case 'json':
       return 'json'
     case 'enum':
-      return 'enum'
+      return 'badge'
     default:
       return 'text'
   }
@@ -51,7 +36,7 @@ const convertSupabaseColumn = (column: SupabaseColumn) => {
   if (column.enums) {
     return {
       ...result,
-      type: 'enum',
+      type: 'badge',
       enum: column.enums.reduce((acc, value) => {
         acc[value] = value.charAt(0).toUpperCase() + value.slice(1)
         return acc
@@ -62,6 +47,7 @@ const convertSupabaseColumn = (column: SupabaseColumn) => {
   if (column.references) {
     return {
       ...result,
+      type: 'text',
       references: column.references,
     }
   }
@@ -69,23 +55,14 @@ const convertSupabaseColumn = (column: SupabaseColumn) => {
   return result
 }
 
-export const generateTableConfigFromSupabase = (
-  table: SupabaseTable,
+export async function generateTableConfigFromDefinition(
+  tableName: string,
   options: {
     description: string
     excludeColumns?: string[]
     includeSelect?: boolean
     includeActions?: boolean
-    customColumns?: Array<{
-      id: string
-      type: string
-      title?: string
-      compute?: {
-        fields: string[]
-        format: string
-      }
-      [key: string]: any
-    }>
+    customColumns?: TableColumn[]
     customFilters?: Array<{
       column: string
       type: 'text' | 'faceted'
@@ -94,21 +71,45 @@ export const generateTableConfigFromSupabase = (
       useOptionsFromColumn?: boolean
     }>
   }
-) => {
+) {
   try {
-    const columns = table.columns.map(convertSupabaseColumn)
-    return generateTableConfig(table.name, options.description, columns, options)
+    const supabase = createClient();
+    
+    // Get table definition from our table_definitions table
+    const { data: definition, error: definitionError } = await supabase
+      .from('table_definitions')
+      .select('*')
+      .eq('table_name', tableName)
+      .single();
+
+    if (definitionError || !definition) {
+      handleSupabaseError(definitionError || new Error('Table definition not found'), {
+        context: `fetching table definition for ${tableName}`,
+        fallbackMessage: "Failed to fetch table definition."
+      });
+      return null;
+    }
+
+    // Handle case where columns is null
+    const columns = definition.columns || [];
+    const convertedColumns = columns.map(convertSupabaseColumn).filter((col: { name: string; type: string }) => {
+      // Filter out any columns that don't have a name or type
+      return col.name && col.type;
+    });
+
+    // If no columns were converted, return null
+    if (convertedColumns.length === 0) {
+      console.warn(`No valid columns found for table ${tableName}`);
+      return null;
+    }
+
+    return generateTableConfig(tableName, options.description, convertedColumns, options);
   } catch (error: any) {
     handleSupabaseError(error, { 
-      context: `Supabase table configuration generation for ${table.name}`,
-      fallbackMessage: `Failed to generate table configuration from Supabase for ${table.name}. Please check your configuration.`
+      context: `Supabase table configuration generation for ${tableName}`,
+      fallbackMessage: `Failed to generate table configuration from Supabase for ${tableName}. Please check your configuration.`
     });
-    return {
-      name: table.name,
-      description: options.description,
-      columns: [],
-      filters: [],
-    };
+    return null;
   }
 }
 

@@ -2,7 +2,7 @@ import { HTMLAttributes, useState } from 'react'
 import { z } from 'zod'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { IconBrandFacebook, IconBrandGithub } from '@tabler/icons-react'
+import { IconBrandFacebook, IconBrandGithub, IconLoader } from '@tabler/icons-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
@@ -39,6 +39,7 @@ const formSchema = z.object({
 
 export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
   const [isLoading, setIsLoading] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const router = useRouter()
   const supabase = createClient()
 
@@ -53,6 +54,7 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
   async function onSubmit(data: z.infer<typeof formSchema>) {
     try {
       setIsLoading(true)
+      setIsSubmitting(true)
       const { error } = await supabase.auth.signInWithPassword({
         email: data.email,
         password: data.password,
@@ -63,6 +65,7 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
           context: "sign in",
           fallbackMessage: "Failed to sign in. Please check your credentials."
         })
+        setIsSubmitting(false)
         return
       }
 
@@ -74,6 +77,7 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
         context: "sign in",
         fallbackMessage: "An unexpected error occurred during sign in."
       })
+      setIsSubmitting(false)
     } finally {
       setIsLoading(false)
     }
@@ -82,6 +86,7 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
   const handleOAuthSignIn = async (provider: 'github' | 'facebook') => {
     try {
       setIsLoading(true)
+      setIsSubmitting(true)
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
@@ -94,15 +99,26 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
           context: `${provider} sign in`,
           fallbackMessage: `Failed to sign in with ${provider}.`
         })
+        setIsSubmitting(false)
       }
     } catch (error) {
       handleSupabaseError(error as Error, { 
         context: `${provider} sign in`,
         fallbackMessage: `An unexpected error occurred during ${provider} sign in.`
       })
+      setIsSubmitting(false)
     } finally {
       setIsLoading(false)
     }
+  }
+
+  if (isSubmitting) {
+    return (
+      <div className="flex flex-col items-center justify-center space-y-4 py-8">
+        <IconLoader className="h-8 w-8 animate-spin text-primary" />
+        <p className="text-sm text-muted-foreground">Signing in...</p>
+      </div>
+    )
   }
 
   return (
@@ -131,7 +147,7 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
                   <div className='flex items-center justify-between'>
                     <FormLabel>Password</FormLabel>
                     <Link
-                      href='/forgot-password'
+                      href='/auth/forgot-password'
                       className='text-sm font-medium text-muted-foreground hover:opacity-75'
                     >
                       Forgot password?

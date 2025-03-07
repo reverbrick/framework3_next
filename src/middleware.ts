@@ -1,15 +1,22 @@
 import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-
-const publicPages = ['/auth/sign-in', '/auth/sign-up'];
+import { isPublicRoute, shouldRedirectWhenLoggedIn } from '@/config/routes'
 
 export async function middleware(request: NextRequest) {
   try {
     const pathname = request.nextUrl.pathname;
+    
+    // Debug logging
+    console.log('Middleware check:', {
+      pathname,
+      isPublicRoute: isPublicRoute(pathname),
+      shouldRedirectWhenLoggedIn: shouldRedirectWhenLoggedIn(pathname)
+    });
 
-    // Skip auth check for public pages
-    if (publicPages.some(page => pathname.includes(page))) {
+    // Skip auth check for public routes
+    if (isPublicRoute(pathname)) {
+      console.log('Middleware: Allowing access to public route');
       return NextResponse.next();
     }
 
@@ -18,21 +25,33 @@ export async function middleware(request: NextRequest) {
 
     // Refresh session if expired
     const { data: { session } } = await supabase.auth.getSession();
+    
+    // Debug logging
+    console.log('Middleware session check:', {
+      pathname,
+      hasSession: !!session,
+      isPublicRoute: isPublicRoute(pathname),
+      shouldRedirectWhenLoggedIn: shouldRedirectWhenLoggedIn(pathname)
+    });
 
     // If there's no session and the user is trying to access a protected route
     if (!session) {
+      console.log('Middleware: No session, redirecting to sign-in');
       const redirectUrl = new URL('/auth/sign-in', request.url);
       redirectUrl.searchParams.set('redirectedFrom', pathname);
       return NextResponse.redirect(redirectUrl);
     }
 
-    // If there's a session and the user is trying to access auth routes
-    if (session && pathname.startsWith('/auth')) {
+    // If there's a session and the user is trying to access specific auth routes
+    if (session && shouldRedirectWhenLoggedIn(pathname)) {
+      console.log('Middleware: Has session, redirecting to dashboard');
       return NextResponse.redirect(new URL('/dashboard', request.url));
     }
 
+    console.log('Middleware: Allowing access');
     return res;
   } catch (error) {
+    console.error('Middleware error:', error);
     // If there's an error with the session, redirect to sign in
     const redirectUrl = new URL('/auth/sign-in', request.url);
     redirectUrl.searchParams.set('redirectedFrom', request.nextUrl.pathname);

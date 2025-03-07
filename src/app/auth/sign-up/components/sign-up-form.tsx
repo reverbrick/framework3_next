@@ -15,6 +15,9 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { PasswordInput } from '@/components/password-input'
+import { createClient } from '@/utils/supabase/client'
+import { useRouter } from 'next/navigation'
+import { toast } from '@/hooks/use-toast'
 
 type SignUpFormProps = HTMLAttributes<HTMLDivElement>
 
@@ -41,6 +44,8 @@ const formSchema = z
 
 export function SignUpForm({ className, ...props }: SignUpFormProps) {
   const [isLoading, setIsLoading] = useState(false)
+  const router = useRouter()
+  const supabase = createClient()
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -51,14 +56,61 @@ export function SignUpForm({ className, ...props }: SignUpFormProps) {
     },
   })
 
-  function onSubmit(data: z.infer<typeof formSchema>) {
-    setIsLoading(true)
-    // eslint-disable-next-line no-console
-    console.log(data)
+  async function onSubmit(data: z.infer<typeof formSchema>) {
+    try {
+      setIsLoading(true)
+      
+      const { error } = await supabase.auth.signUp({
+        email: data.email,
+        password: data.password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback?next=/dashboard`,
+        },
+      })
 
-    setTimeout(() => {
+      if (error) {
+        throw error
+      }
+
+      toast({
+        title: "Check your email",
+        description: "We've sent you a verification link to complete your registration.",
+      })
+
+      // Redirect to sign-in after a short delay to show the success message
+      setTimeout(() => {
+        router.push('/auth/sign-in')
+      }, 2000)
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "Failed to create account. Please try again.",
+      })
+    } finally {
       setIsLoading(false)
-    }, 3000)
+    }
+  }
+
+  const handleOAuthSignUp = async (provider: 'github' | 'facebook') => {
+    try {
+      setIsLoading(true)
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback?next=/dashboard`,
+        },
+      })
+      if (error) throw error
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'An error occurred',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -106,7 +158,7 @@ export function SignUpForm({ className, ...props }: SignUpFormProps) {
               )}
             />
             <Button className='mt-2' disabled={isLoading}>
-              Create Account
+              {isLoading ? 'Creating Account...' : 'Create Account'}
             </Button>
 
             <div className='relative my-2'>
@@ -126,6 +178,7 @@ export function SignUpForm({ className, ...props }: SignUpFormProps) {
                 className='w-full'
                 type='button'
                 disabled={isLoading}
+                onClick={() => handleOAuthSignUp('github')}
               >
                 <IconBrandGithub className='h-4 w-4' /> GitHub
               </Button>
@@ -134,6 +187,7 @@ export function SignUpForm({ className, ...props }: SignUpFormProps) {
                 className='w-full'
                 type='button'
                 disabled={isLoading}
+                onClick={() => handleOAuthSignUp('facebook')}
               >
                 <IconBrandFacebook className='h-4 w-4' /> Facebook
               </Button>

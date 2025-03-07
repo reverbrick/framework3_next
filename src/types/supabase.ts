@@ -1,4 +1,12 @@
-export type Json =
+[?25l
+    Select a project:                                                                                                      
+                                                                                                                           
+  >  1. ysvdpsvhyrljqkkrhmtt [name: supabase-orange-river, org: vercel_icfg_ccxkq1NMqLBybmR3FFFZFjn9, region: eu-central-1]
+    2. pzazllvnmgurwjocfyrf [name: metalwit, org: vercel_icfg_ccxkq1NMqLBybmR3FFFZFjn9, region: eu-central-1]              
+                                                                                                                           
+                                                                                                                           
+    ↑/k up • ↓/j down • / filter • q quit • ? more                                                                         
+                                                                                                                           [0D[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[0D[2K [0D[2K[?25h[?1002l[?1003l[?1006lexport type Json =
   | string
   | number
   | boolean
@@ -90,6 +98,42 @@ export type Database = {
         }
         Relationships: []
       }
+      organizations: {
+        Row: {
+          Country: string | null
+          Description: string | null
+          Founded: number | null
+          Index: number
+          Industry: string | null
+          Name: string | null
+          "Number of employees": number | null
+          "Organization Id": string | null
+          Website: string | null
+        }
+        Insert: {
+          Country?: string | null
+          Description?: string | null
+          Founded?: number | null
+          Index: number
+          Industry?: string | null
+          Name?: string | null
+          "Number of employees"?: number | null
+          "Organization Id"?: string | null
+          Website?: string | null
+        }
+        Update: {
+          Country?: string | null
+          Description?: string | null
+          Founded?: number | null
+          Index?: number
+          Industry?: string | null
+          Name?: string | null
+          "Number of employees"?: number | null
+          "Organization Id"?: string | null
+          Website?: string | null
+        }
+        Relationships: []
+      }
       payments: {
         Row: {
           amount: number | null
@@ -108,6 +152,33 @@ export type Database = {
           email?: string | null
           id?: number
           status?: string | null
+        }
+        Relationships: []
+      }
+      table_definitions: {
+        Row: {
+          columns: Json | null
+          created_at: string
+          id: string
+          schema_name: string
+          table_name: string
+          updated_at: string
+        }
+        Insert: {
+          columns?: Json | null
+          created_at?: string
+          id?: string
+          schema_name?: string
+          table_name: string
+          updated_at?: string
+        }
+        Update: {
+          columns?: Json | null
+          created_at?: string
+          id?: string
+          schema_name?: string
+          table_name?: string
+          updated_at?: string
         }
         Relationships: []
       }

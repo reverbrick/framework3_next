@@ -9,6 +9,7 @@ import { Header } from "@/components/layout/header";
 import { Search } from "@/components/search";
 import { ThemeSwitch } from "@/components/theme-switch";
 import { ProfileDropdown } from "@/components/profile-dropdown";
+import { isPublicRoute } from "@/config/routes";
 
 interface ClientLayoutProps {
   children: React.ReactNode;
@@ -19,30 +20,72 @@ export function ClientLayout({ children }: ClientLayoutProps) {
   const [isLoading, setIsLoading] = useState(true);
   const supabase = createClient();
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
+    let mounted = true;
+
     const getUser = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        setSession(session);
+        if (mounted) {
+          setSession(session);
+        }
+        
+        // Debug logging
+        console.log('Initial auth check:', {
+          pathname,
+          isPublicRoute: isPublicRoute(pathname),
+          hasSession: !!session,
+          shouldRedirect: !session && !isPublicRoute(pathname)
+        });
+        
+        // Only redirect if we're not on a public route and there's no session
+        if (!session && !isPublicRoute(pathname)) {
+          console.log('Initial check - redirecting to sign-in...');
+          router.push('/auth/sign-in');
+        }
       } catch (error) {
         console.error('Error getting session:', error);
-        router.push('/auth/sign-in');
+        // Only redirect to sign-in if not on a public route
+        if (!isPublicRoute(pathname)) {
+          console.log('Error case - redirecting to sign-in...');
+          router.push('/auth/sign-in');
+        }
       } finally {
-        setIsLoading(false);
+        if (mounted) {
+          setIsLoading(false);
+        }
       }
     };
     getUser();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      if (!session) {
+      if (mounted) {
+        setSession(session);
+      }
+      
+      // Debug logging
+      console.log('Auth state changed:', {
+        event: _event,
+        pathname,
+        isPublicRoute: isPublicRoute(pathname),
+        hasSession: !!session,
+        shouldRedirect: !session && !isPublicRoute(pathname)
+      });
+      
+      // Only redirect if we're not on a public route and there's no session
+      if (!session && !isPublicRoute(pathname)) {
+        console.log('Auth state change - redirecting to sign-in...');
         router.push('/auth/sign-in');
       }
     });
 
-    return () => subscription.unsubscribe();
-  }, [supabase.auth, router]);
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, [supabase.auth, router, pathname]);
 
   if (isLoading) {
     return null; // Or a loading spinner

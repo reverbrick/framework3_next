@@ -12,36 +12,47 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
-import { Input } from '@/components/ui/input'
+import { PasswordInput } from '@/components/password-input'
 import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
 import { toast } from '@/hooks/use-toast'
 
-type ForgotFormProps = HTMLAttributes<HTMLDivElement>
+type ResetPasswordFormProps = HTMLAttributes<HTMLDivElement>
 
 const formSchema = z.object({
-  email: z
+  password: z
     .string()
-    .min(1, { message: 'Please enter your email' })
-    .email({ message: 'Invalid email address' }),
+    .min(1, {
+      message: 'Please enter your password',
+    })
+    .min(7, {
+      message: 'Password must be at least 7 characters long',
+    }),
+  confirmPassword: z.string(),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords don't match.",
+  path: ['confirmPassword'],
 })
 
-export function ForgotForm({ className, ...props }: ForgotFormProps) {
+export function ResetPasswordForm({ className, ...props }: ResetPasswordFormProps) {
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
   const supabase = createClient()
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: { email: '' },
+    defaultValues: {
+      password: '',
+      confirmPassword: '',
+    },
   })
 
   async function onSubmit(data: z.infer<typeof formSchema>) {
     try {
       setIsLoading(true)
       
-      const { error } = await supabase.auth.resetPasswordForEmail(data.email, {
-        redirectTo: `${window.location.origin}/auth/reset-password`,
+      const { error } = await supabase.auth.updateUser({
+        password: data.password
       })
 
       if (error) {
@@ -49,8 +60,8 @@ export function ForgotForm({ className, ...props }: ForgotFormProps) {
       }
 
       toast({
-        title: "Check your email",
-        description: "We've sent you a link to reset your password.",
+        title: "Password updated",
+        description: "Your password has been updated successfully.",
       })
 
       // Redirect to sign-in after a short delay to show the success message
@@ -61,7 +72,7 @@ export function ForgotForm({ className, ...props }: ForgotFormProps) {
       toast({
         variant: "destructive",
         title: "Error",
-        description: error.message || "Failed to send reset link. Please try again.",
+        description: error.message || "Failed to update password. Please try again.",
       })
     } finally {
       setIsLoading(false)
@@ -75,23 +86,36 @@ export function ForgotForm({ className, ...props }: ForgotFormProps) {
           <div className='grid gap-2'>
             <FormField
               control={form.control}
-              name='email'
+              name='password'
               render={({ field }) => (
                 <FormItem className='space-y-1'>
-                  <FormLabel>Email</FormLabel>
+                  <FormLabel>New Password</FormLabel>
                   <FormControl>
-                    <Input placeholder='name@example.com' {...field} />
+                    <PasswordInput placeholder='********' {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name='confirmPassword'
+              render={({ field }) => (
+                <FormItem className='space-y-1'>
+                  <FormLabel>Confirm New Password</FormLabel>
+                  <FormControl>
+                    <PasswordInput placeholder='********' {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
             <Button className='mt-2' disabled={isLoading}>
-              {isLoading ? 'Sending Reset Link...' : 'Send Reset Link'}
+              {isLoading ? 'Updating Password...' : 'Update Password'}
             </Button>
           </div>
         </form>
       </Form>
     </div>
   )
-}
+} 

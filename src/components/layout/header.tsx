@@ -4,6 +4,7 @@ import React from 'react'
 import { cn } from '@/lib/utils'
 import { Separator } from '@/components/ui/separator'
 import { SidebarTrigger } from '@/components/ui/sidebar'
+import { usePathname } from 'next/navigation'
 
 interface HeaderProps extends React.HTMLAttributes<HTMLElement> {
   fixed?: boolean
@@ -19,6 +20,8 @@ export const Header = ({
   ...props
 }: HeaderProps) => {
   const [offset, setOffset] = React.useState(0)
+  const pathname = usePathname()
+  const isAuthPage = pathname?.startsWith('/auth')
 
   React.useEffect(() => {
     const onScroll = () => {
@@ -50,7 +53,7 @@ export const Header = ({
             <Separator orientation='vertical' className='h-6' />
           </>
         )}
-        {children}
+        {!isAuthPage && children}
       </div>
     </header>
   )

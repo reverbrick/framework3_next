@@ -13,17 +13,26 @@ export function DataTableToolbar<TData>({
 }: DataTableToolbarProps<TData>) {
   const isFiltered = table.getState().columnFilters.length > 0
 
+  // Find the first column that can be filtered and is visible
+  const searchColumn = table.getAllColumns()
+    .find(column => 
+      column.getCanFilter() && 
+      column.getIsVisible()
+    )?.id;
+
   return (
     <div className="flex items-center justify-between">
       <div className="flex flex-1 flex-col-reverse items-start gap-y-2 sm:flex-row sm:items-center sm:space-x-2">
-        <Input
-          placeholder="Search all columns..."
-          value={(table.getColumn("name")?.getFilterValue() as string) ?? ""}
-          onChange={(event) =>
-            table.getColumn("name")?.setFilterValue(event.target.value)
-          }
-          className="h-8 w-[150px] lg:w-[250px]"
-        />
+        {searchColumn && (
+          <Input
+            placeholder="Search all columns..."
+            value={(table.getColumn(searchColumn)?.getFilterValue() as string) ?? ""}
+            onChange={(event) =>
+              table.getColumn(searchColumn)?.setFilterValue(event.target.value)
+            }
+            className="h-8 w-[150px] lg:w-[250px]"
+          />
+        )}
         {isFiltered && (
           <Button
             variant="ghost"

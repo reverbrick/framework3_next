@@ -7,7 +7,6 @@ import {
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
-  getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
@@ -26,9 +25,22 @@ import { cn } from "@/lib/utils";
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
+  pageCount: number;
+  pageIndex: number;
+  pageSize: number;
+  onPaginationChange: (pageIndex: number, pageSize: number) => void;
+  onSortingChange: (sorting: SortingState) => void;
 }
 
-export function DataTable<TData, TValue>({ columns, data }: DataTableProps<TData, TValue>) {
+export function DataTable<TData, TValue>({ 
+  columns, 
+  data, 
+  pageCount,
+  pageIndex,
+  pageSize,
+  onPaginationChange,
+  onSortingChange
+}: DataTableProps<TData, TValue>) {
   const [rowSelection, setRowSelection] = useState({});
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -38,18 +50,36 @@ export function DataTable<TData, TValue>({ columns, data }: DataTableProps<TData
     data,
     columns,
     getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     onRowSelectionChange: setRowSelection,
     onColumnFiltersChange: setColumnFilters,
-    onSortingChange: setSorting,
+    onSortingChange: (updater) => {
+      const newSorting = typeof updater === 'function' ? updater(sorting) : updater;
+      setSorting(newSorting);
+      onSortingChange(newSorting);
+    },
     onColumnVisibilityChange: setColumnVisibility,
     state: {
       sorting,
       columnVisibility,
       rowSelection,
       columnFilters,
+      pagination: {
+        pageIndex,
+        pageSize,
+      },
+    },
+    pageCount,
+    manualPagination: true,
+    manualSorting: true,
+    onPaginationChange: (updater) => {
+      if (typeof updater === 'function') {
+        const newState = updater({ pageIndex, pageSize });
+        onPaginationChange(newState.pageIndex, newState.pageSize);
+      } else {
+        onPaginationChange(updater.pageIndex, updater.pageSize);
+      }
     },
   });
 

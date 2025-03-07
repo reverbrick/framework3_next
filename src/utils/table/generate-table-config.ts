@@ -1,102 +1,69 @@
 import { IconShield, IconUserShield, IconUsersGroup, IconCash } from '@tabler/icons-react'
 import { handleSupabaseError } from "@/utils/supabase-error-handler";
-
-type SupabaseEnum = {
-  [key: string]: string | number
-}
-
-type TableConfig = {
-  name: string
-  description: string
-  columns: ColumnConfig[]
-  filters: FilterConfig[]
-}
-
-type ColumnConfig = {
-  id: string
-  type: string
-  title?: string
-  sticky?: boolean
-  maxWidth?: number
-  enableSorting?: boolean
-  enableHiding?: boolean
-  nowrap?: boolean
-  options?: Record<string, any>
-  compute?: {
-    fields: string[]
-    format: string
-  }
-}
-
-type FilterConfig = {
-  column: string
-  type: 'text' | 'faceted'
-  placeholder?: string
-  options?: Array<{ label: string; value: string }>
-  useOptionsFromColumn?: boolean
-}
+import { TableConfig, TableColumn } from "@/utils/table-config-utils";
 
 type ColumnType = {
-  name: string
-  type: string
-  isNullable: boolean
-  format?: string
-  enum?: SupabaseEnum
-  references?: string
-}
+  name: string;
+  type: string;
+  isNullable: boolean;
+  format?: string;
+  enum?: Record<string, string>;
+  references?: string;
+};
 
-const SPECIAL_COLUMNS = {
+const SPECIAL_COLUMNS: Record<string, Partial<TableColumn>> = {
   id: {
     type: 'text',
     enableSorting: true,
     enableHiding: true,
   },
   created_at: {
-    type: 'datetime',
+    type: 'text',
     enableSorting: true,
     enableHiding: true,
   },
   updated_at: {
-    type: 'datetime',
+    type: 'text',
     enableSorting: true,
     enableHiding: true,
   },
-}
+};
 
-const TYPE_MAPPINGS: Record<string, { type: string; config?: Partial<ColumnConfig> }> = {
+const TYPE_MAPPINGS: Record<string, { type: TableColumn['type']; config?: Partial<TableColumn> }> = {
   text: { type: 'text' },
   varchar: { type: 'text' },
-  int8: { type: 'number' },
-  int4: { type: 'number' },
-  bool: { type: 'boolean' },
-  timestamp: { type: 'datetime' },
-  date: { type: 'date' },
-  jsonb: { type: 'json' },
+  int8: { type: 'text' },
+  int4: { type: 'text' },
+  bool: { type: 'text' },
+  timestamp: { type: 'text' },
+  date: { type: 'text' },
+  jsonb: { type: 'text' },
   enum: { type: 'badge' },
-}
+};
 
-const generateColumnConfig = (column: ColumnType): ColumnConfig => {
+const generateColumnConfig = (column: ColumnType): TableColumn => {
   // Check if it's a special column
-  const specialConfig = SPECIAL_COLUMNS[column.name as keyof typeof SPECIAL_COLUMNS]
+  const specialConfig = SPECIAL_COLUMNS[column.name];
   if (specialConfig) {
     return {
       id: column.name,
       title: column.name.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '),
+      type: 'text',
       ...specialConfig,
-    }
+    };
   }
 
   // Get base configuration from type mapping
-  const baseConfig = TYPE_MAPPINGS[column.type] || { type: 'text' }
+  const baseConfig = TYPE_MAPPINGS[column.type] || { type: 'text' };
 
-  const config: ColumnConfig = {
+  const config: TableColumn = {
     id: column.name,
     title: column.name.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '),
     type: baseConfig.type,
     enableSorting: true,
     enableHiding: true,
     ...baseConfig.config,
-  }
+  };
 
   // Handle enum types
   if (column.type === 'enum' && column.enum) {
@@ -104,55 +71,61 @@ const generateColumnConfig = (column: ColumnType): ColumnConfig => {
       acc[key] = {
         label: String(value),
         value: key,
-      }
-      return acc
-    }, {} as Record<string, any>)
+      };
+      return acc;
+    }, {} as Record<string, any>);
   }
 
   // Handle foreign key references
   if (column.references) {
-    config.type = 'relation'
-    config.enableSorting = false
+    config.type = 'text';
+    config.enableSorting = false;
   }
 
-  return config
-}
+  return config;
+};
 
-const generateFilterConfig = (column: ColumnType): FilterConfig | null => {
+const generateFilterConfig = (column: ColumnType) => {
   // Don't generate filters for certain columns
   if (['id', 'created_at', 'updated_at'].includes(column.name)) {
-    return null
+    return null;
   }
 
   if (column.type === 'enum') {
     return {
       column: column.name,
-      type: 'faceted',
+      type: 'faceted' as const,
       useOptionsFromColumn: true,
-    }
+    };
   }
 
   if (['text', 'varchar'].includes(column.type)) {
     return {
       column: column.name,
-      type: 'text',
+      type: 'text' as const,
       placeholder: `Filter by ${column.name}...`,
-    }
+    };
   }
 
-  return null
-}
+  return null;
+};
 
 export const generateTableConfig = (
   tableName: string,
   description: string,
   columns: ColumnType[],
   options?: {
-    excludeColumns?: string[]
-    includeSelect?: boolean
-    includeActions?: boolean
-    customColumns?: ColumnConfig[]
-    customFilters?: FilterConfig[]
+    excludeColumns?: string[];
+    includeSelect?: boolean;
+    includeActions?: boolean;
+    customColumns?: TableColumn[];
+    customFilters?: Array<{
+      column: string;
+      type: 'text' | 'faceted';
+      placeholder?: string;
+      options?: Array<{ label: string; value: string }>;
+      useOptionsFromColumn?: boolean;
+    }>;
   }
 ): TableConfig => {
   try {
@@ -162,10 +135,10 @@ export const generateTableConfig = (
       includeActions = true,
       customColumns = [],
       customFilters = [],
-    } = options || {}
+    } = options || {};
 
-    const tableColumns: ColumnConfig[] = []
-    const tableFilters: FilterConfig[] = []
+    const tableColumns: TableColumn[] = [];
+    const tableFilters = [];
 
     // Add select column if needed
     if (includeSelect) {
@@ -175,42 +148,42 @@ export const generateTableConfig = (
         sticky: true,
         enableSorting: false,
         enableHiding: false,
-      })
+      });
     }
 
     // Process each column
     columns
       .filter(col => !excludeColumns.includes(col.name))
       .forEach(column => {
-        const columnConfig = generateColumnConfig(column)
-        tableColumns.push(columnConfig)
+        const columnConfig = generateColumnConfig(column);
+        tableColumns.push(columnConfig);
 
-        const filterConfig = generateFilterConfig(column)
+        const filterConfig = generateFilterConfig(column);
         if (filterConfig) {
-          tableFilters.push(filterConfig)
+          tableFilters.push(filterConfig);
         }
-      })
+      });
 
     // Add custom columns
-    tableColumns.push(...customColumns)
+    tableColumns.push(...customColumns);
 
     // Add actions column if needed
     if (includeActions) {
       tableColumns.push({
         id: 'actions',
         type: 'actions',
-      })
+      });
     }
 
     // Add custom filters
-    tableFilters.push(...customFilters)
+    tableFilters.push(...customFilters);
 
     return {
       name: tableName,
       description,
       columns: tableColumns,
       filters: tableFilters,
-    }
+    };
   } catch (error: any) {
     handleSupabaseError(error, { 
       context: `table configuration generation for ${tableName}`,
@@ -223,4 +196,4 @@ export const generateTableConfig = (
       filters: [],
     };
   }
-} 
+}; 

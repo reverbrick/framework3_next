@@ -16,18 +16,19 @@ import { MoreHorizontalIcon, ArrowUpDown } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { handleSupabaseError } from "@/utils/supabase-error-handler";
 
-type ColumnConfig<T> = {
+export interface ColumnConfig<T> {
   key: string;
   label: string;
-  type?: 'string' | 'number' | 'date' | 'boolean';
-  sortable?: boolean;
-  hidden?: boolean;
   width?: number;
   minWidth?: number;
   maxWidth?: number;
+  type?: 'string' | 'number' | 'boolean' | 'date';
+  enableSorting?: boolean;
+  enableHiding?: boolean;
   render?: (value: any, row: T) => React.ReactNode;
-  filterFn?: FilterFn<T>;
-};
+  filterFn?: (row: any, columnId: string, filterValue: string) => boolean;
+  header?: (props: any) => React.ReactNode;
+}
 
 type TableOptions<T> = {
   selectable?: boolean;
@@ -80,12 +81,13 @@ export function generateColumns<T extends Record<string, any>>(
 
     // Add data columns
     columnConfigs.forEach((config) => {
-      if (config.hidden) return;
+      // Skip hidden columns
+      if (config.enableHiding !== undefined && !config.enableHiding) return;
 
       const column: ColumnDef<T> = {
         accessorKey: config.key,
-        header: ({ column }) => {
-          if (config.sortable === false) {
+        header: config.header || (({ column }) => {
+          if (config.enableSorting !== undefined && !config.enableSorting) {
             return config.label;
           }
           return (
@@ -101,7 +103,7 @@ export function generateColumns<T extends Record<string, any>>(
               </Button>
             </div>
           );
-        },
+        }),
         cell: ({ row }) => {
           try {
             const value = row.getValue(config.key);
@@ -133,6 +135,8 @@ export function generateColumns<T extends Record<string, any>>(
         size: config.width,
         minSize: config.minWidth,
         maxSize: config.maxWidth,
+        enableHiding: config.enableHiding !== false,
+        enableSorting: config.enableSorting !== false,
       };
 
       // Add filter function if provided
@@ -182,6 +186,8 @@ export function generateColumns<T extends Record<string, any>>(
           );
         },
         size: 50,
+        enableHiding: false,
+        enableSorting: false,
       });
     }
 
