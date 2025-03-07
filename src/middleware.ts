@@ -25,6 +25,7 @@ export async function middleware(request: NextRequest) {
             sameSite: 'lax',
             secure: process.env.NODE_ENV === 'production',
             path: '/',
+            maxAge: 60 * 60 * 24 * 7, // 1 week
           })
         },
         remove(name: string, options: CookieOptions) {
@@ -42,16 +43,31 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  const { data: { session } } = await supabase.auth.getSession()
+  try {
+    const { data: { session } } = await supabase.auth.getSession()
 
-  // Only redirect if we're on a protected route without a session
-  if (!session && !isPublicRoute(request.nextUrl.pathname)) {
-    const redirectUrl = new URL('/auth/sign-in', request.url)
-    redirectUrl.searchParams.set('redirectedFrom', request.nextUrl.pathname)
-    return NextResponse.redirect(redirectUrl)
+    // Handle auth routes
+    if (request.nextUrl.pathname.startsWith('/auth')) {
+      if (session) {
+        // If user is signed in and trying to access auth routes, redirect to dashboard
+        return NextResponse.redirect(new URL('/dashboard', request.url))
+      }
+      return response
+    }
+
+    // Handle protected routes
+    if (!session && !isPublicRoute(request.nextUrl.pathname)) {
+      const redirectUrl = new URL('/auth/sign-in', request.url)
+      redirectUrl.searchParams.set('redirectedFrom', request.nextUrl.pathname)
+      return NextResponse.redirect(redirectUrl)
+    }
+
+    return response
+  } catch (error) {
+    console.error('Middleware error:', error)
+    // On error, allow the request to continue
+    return response
   }
-
-  return response
 }
 
 export const config = {

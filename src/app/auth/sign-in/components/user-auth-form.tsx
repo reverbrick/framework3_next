@@ -69,9 +69,11 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
         return
       }
 
-      // Redirect to dashboard or home page after successful login
-      router.push('/dashboard')
-      router.refresh()
+      // Wait for a short moment to ensure the session is properly set
+      await new Promise(resolve => setTimeout(resolve, 100))
+      
+      // Use replace instead of push to avoid adding to history
+      router.replace('/dashboard')
     } catch (error) {
       handleSupabaseError(error as Error, { 
         context: "sign in",
